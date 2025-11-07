@@ -3,8 +3,24 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3+4 (revert)</title>
+<title>Scene 3+4 (Final)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
+<style>
+/* CSS 충돌 방지를 위해 dialog를 기본적으로 숨기되, 
+   애니메이션을 위해 opacity와 transition을 사용할 수 있도록 준비합니다. 
+   만약 ui.css에 이미 dialog에 display:none이 있다면 이 부분은 제거해도 됩니다. */
+.dialog {
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out;
+}
+.dialog.show {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+</style>
 </head>
 <body>
 <div class="stage">
@@ -24,33 +40,40 @@
   <div class="hearts" id="hearts"></div>
 </div>
 <script>
-// awaitTapOnce: document 전체 이벤트 리스너 사용 및 탭칩 제어
+// --- 전역 요소 정의 ---
+const vid = document.getElementById('vid'); 
+const hint = document.getElementById('hint'); 
+const tap = document.getElementById('tap');
+const dialog = document.getElementById('dialog'); 
+const avatar = document.getElementById('avatar'); 
+const nameEl = document.getElementById('name');
+const line = document.getElementById('line'); 
+const btns = document.getElementById('btns'); 
+const hearts = document.getElementById('hearts');
+
+// --- 유틸리티 함수 ---
+
+/** 탭 대기 함수: document 전체에 리스너를 걸어 확실하게 이벤트를 잡습니다. */
 function awaitTapOnce(next){
   // 탭칩을 띄워 사용자에게 탭을 유도합니다.
   tap.style.display='block'; 
   
   const fn=(e)=>{ 
-    // .btn 요소를 클릭한 경우를 제외하고
+    // .btn 요소를 클릭한 경우를 제외
     if(e.target.closest && e.target.closest('.btn')) return;
     
-    // 리스너를 즉시 제거하고, 탭칩을 숨기고, 다음 함수(next)를 실행합니다.
+    // 리스너 제거 및 탭칩 숨김
     document.removeEventListener('click',fn); 
     document.removeEventListener('touchend',fn); 
     tap.style.display='none'; 
     next(); 
   };
   
-  // document 전체에 이벤트를 걸어 어떤 곳을 탭해도 동작하도록 합니다.
   document.addEventListener('click',fn,{passive:true});
   document.addEventListener('touchend',fn,{passive:true});
 }
-function setupStart(vid,hint){
-  hint.style.display='block';
-  const tap=document.getElementById('tap');
-  const start=()=>{hint.style.display='none'; vid.muted=true; vid.playsInline=true;
-    vid.play().catch(()=>{ tap.style.display='block'; });};
-  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
-}
+
+/** 하트 이펙트 함수 (동일) */
 function heartBurst(container){
   container.innerHTML='';
   for(let i=0;i<10;i++){
@@ -60,31 +83,58 @@ function heartBurst(container){
   }
   setTimeout(()=>container.innerHTML='',1600);
 }
-const vid=document.getElementById('vid'); const hint=document.getElementById('hint'); const tap=document.getElementById('tap');
-const dialog=document.getElementById('dialog'); const avatar=document.getElementById('avatar'); const nameEl=document.getElementById('name');
-const line=document.getElementById('line'); const btns=document.getElementById('btns'); const hearts=document.getElementById('hearts');
-setupStart(vid,hint);
+
+/** 시작 설정 함수 (동일) */
+function setupStart(vid,hint){
+  hint.style.display='block';
+  const start=()=>{
+    hint.style.display='none'; 
+    vid.muted=true; vid.playsInline=true;
+    vid.play().catch(()=>{ tap.style.display='block'; });
+  };
+  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
+}
+
+// --- Scene 3 다이얼로그 로직 ---
+
+/** 대화창 표시 및 내용 업데이트 */
+function updateDialog(name, avatarSrc, text, hideTapChip=false){
+    // CSS 클래스를 사용하여 대화창 표시를 확실히 합니다.
+    dialog.classList.add('show');
+    dialog.style.zIndex = '9999'; // 다른 요소 위에 올라오도록 z-index 설정
+    avatar.src = avatarSrc;
+    nameEl.textContent = name;
+    line.textContent = text;
+    btns.innerHTML = '';
+    if(hideTapChip) tap.style.display = 'none';
+}
 
 function startScene3Dialogs(){
+  // 대화 시퀀스를 명확하게 재구성
+  updateDialog('성우', './assets/avatar_seongwoo.png', '어? 태이다~~~~~', true);
+  
   awaitTapOnce(()=>{
-    dialog.style.display='block';
-    avatar.src='./assets/avatar_seongwoo.png'; nameEl.textContent='성우'; line.textContent='어? 태이다~~~~~';
+    updateDialog('태이', './assets/avatar_taei.png', '아가~~~~ 생일축하해!! ❤️');
     awaitTapOnce(()=>{
-      avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이'; line.textContent='아가~~~~ 생일축하해!! ❤️';
-      awaitTapOnce(()=>{
-        line.textContent='내가 마지막으로 줄 선물은 ...!';
-        awaitTapOnce(()=>{ dialog.style.display='none'; playScene4(); });
+      updateDialog('태이', './assets/avatar_taei.png', '내가 마지막으로 줄 선물은 ...!');
+      awaitTapOnce(()=>{ 
+        dialog.classList.remove('show');
+        playScene4(); 
       });
     });
   });
 }
-vid.addEventListener('ended', startScene3Dialogs, {once:true});
+
+// --- Scene 4 로직 ---
+
+let v2 = null; // v2 영상을 전역 변수로 관리
 
 function playScene4(){
-  // Scene 4 시작 시 tapchip을 숨깁니다.
+  // 기존 영상 요소 제거 및 tapchip 숨김
   tap.style.display='none'; 
+  if (vid.parentNode) vid.parentNode.removeChild(vid); // Scene 3 영상 제거
 
-  const v2=document.createElement('video');
+  v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
   v2.playsInline=true; v2.muted=true; v2.preload='auto';
   Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000'});
@@ -98,15 +148,14 @@ function playScene4(){
     // 🚨 핵심 수정: 영상이 끝나면 v2를 DOM에서 제거하여 화면을 가리는 문제 해결
     if (v2.parentNode) {
         v2.parentNode.removeChild(v2); 
+        v2 = null; // 참조 제거
     }
 
-    dialog.style.display='block'; avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이';
-    
-    // 1. 대사가 바로 뜨도록 설정
-    line.textContent='태이랑 같이 제주도 가자~!!! ✈️'; 
+    // 대사 바로 표시 (Scene 4-1)
+    updateDialog('태이', './assets/avatar_taei.png', '태이랑 같이 제주도 가자~!!! ✈️');
     btns.innerHTML='';
 
-    // 2. 탭을 기다려 선택지 버튼을 표시합니다.
+    // 탭을 기다려 선택지 버튼을 표시 (Scene 4-2)
     awaitTapOnce(()=>{ 
       const o=document.createElement('a'); o.className='btn'; o.textContent='태이랑 함께할래~ 💖';
       const x=document.createElement('a'); x.className='btn'; x.textContent='넘 갑작스러워서 안갈래요! 😭';
@@ -116,25 +165,29 @@ function playScene4(){
       o.onclick=(e)=>{ 
         e.preventDefault(); 
         btns.innerHTML=''; 
-        line.textContent='태이한테 뽀뽀~ (하트)'; 
+        updateDialog('태이', './assets/avatar_taei.png', '태이한테 뽀뽀~ (하트)');
         heartBurst(hearts); 
         awaitTapOnce(()=>location.href='./index.html'); 
       };
       x.onclick=(e)=>{ 
         e.preventDefault(); 
         btns.innerHTML=''; 
-        line.textContent='너무 슬포요 흑흑'; 
+        updateDialog('태이', './assets/avatar_taei.png', '너무 슬포요 흑흑');
         awaitTapOnce(()=>location.href='./index.html'); 
       };
     });
   };
 
-  // earlier simpler fallback that worked: ended + timeupdate near-end
+  // 이벤트 리스너: 영상 종료 시 finish 실행
   v2.addEventListener('ended', finish, {once:true});
   v2.addEventListener('timeupdate', ()=>{
     if(!done && v2.duration && v2.currentTime >= v2.duration - 0.2) finish();
   });
 }
+
+// --- 초기 실행 ---
+setupStart(vid,hint);
+vid.addEventListener('ended', startScene3Dialogs, {once:true});
 </script>
 </body>
 </html>
