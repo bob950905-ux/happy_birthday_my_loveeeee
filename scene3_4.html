@@ -1,9 +1,12 @@
-<!doctype html><html lang="ko"><head>
+<!doctype html>
+<html lang="ko">
+<head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <title>Scene 3+4 (revert)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
-</head><body>
+</head>
+<body>
 <div class="stage">
   <video id="vid" src="./scene3_taei.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div class="hint" id="hint">🎬 START!</div>
@@ -66,6 +69,9 @@ function startScene3Dialogs(){
 vid.addEventListener('ended', startScene3Dialogs, {once:true});
 
 function playScene4(){
+  // Scene 4 시작 시 tapchip을 확실히 숨깁니다.
+  tap.style.display='none'; 
+
   const v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
   v2.playsInline=true; v2.muted=true; v2.preload='auto';
@@ -77,13 +83,31 @@ function playScene4(){
   const finish=()=>{
     if(done) return; done=true;
     dialog.style.display='block'; avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이';
-    line.textContent='태이랑 같이 제주도 가자~!!! ✈️'; btns.innerHTML='';
-    awaitTapOnce(()=>{
+    
+    // 🚨 수정된 부분: 대사가 바로 뜨도록 awaitTapOnce 밖으로 이동
+    line.textContent='태이랑 같이 제주도 가자~!!! ✈️'; 
+    btns.innerHTML='';
+
+    // 탭을 기다려 선택지 버튼을 표시합니다.
+    awaitTapOnce(()=>{ 
       const o=document.createElement('a'); o.className='btn'; o.textContent='태이랑 함께할래~ 💖';
       const x=document.createElement('a'); x.className='btn'; x.textContent='넘 갑작스러워서 안갈래요! 😭';
       btns.append(o,x);
-      o.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='태이한테 뽀뽀~ (하트)'; heartBurst(hearts); awaitTapOnce(()=>location.href='./index.html'); };
-      x.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='너무 슬포요 흑흑'; awaitTapOnce(()=>location.href='./index.html'); };
+      
+      // 버튼 클릭 이벤트 핸들러
+      o.onclick=(e)=>{ 
+        e.preventDefault(); 
+        btns.innerHTML=''; 
+        line.textContent='태이한테 뽀뽀~ (하트)'; 
+        heartBurst(hearts); 
+        awaitTapOnce(()=>location.href='./index.html'); 
+      };
+      x.onclick=(e)=>{ 
+        e.preventDefault(); 
+        btns.innerHTML=''; 
+        line.textContent='너무 슬포요 흑흑'; 
+        awaitTapOnce(()=>location.href='./index.html'); 
+      };
     });
   };
 
@@ -94,4 +118,5 @@ function playScene4(){
   });
 }
 </script>
-</body></html>
+</body>
+</html>
