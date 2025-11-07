@@ -3,22 +3,17 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3+4 — hotfix</title>
-<link rel="stylesheet" href="./assets/ui.css?v=hotfix1"/>
-<style>
-  .continue-chip{position:absolute;top:14vh;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:999px;background:#0f1f34e6;border:1.5px solid #071223;box-shadow:0 3px 0 #071223;display:none;z-index:25}
-</style>
+<title>Scene 3+4 (revert)</title>
+<link rel="stylesheet" href="./assets/ui.css"/>
 </head>
 <body>
 <div class="stage">
-  <video id="vid" src="./scene3_taei.mp4?v=hotfix1" preload="auto" playsinline webkit-playsinline muted></video>
+  <video id="vid" src="./scene3_taei.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div class="hint" id="hint">🎬 START!</div>
   <div class="tapchip" id="tap">탭!</div>
-  <div class="continue-chip" id="cont">탭해서 계속</div>
-
   <div class="dialog" id="dialog">
     <div class="row" id="row">
-      <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png?v=hotfix1" alt="avatar"/>
+      <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
       <div class="bubble" id="bubble">
         <div class="name" id="name">성우</div>
         <div class="line" id="line"></div>
@@ -26,56 +21,56 @@
       </div>
     </div>
   </div>
-
   <div class="hearts" id="hearts"></div>
 </div>
-
 <script>
+// awaitTapOnce: document 전체 이벤트 리스너 사용 및 탭칩 제어
 function awaitTapOnce(next){
-  const stage=document.querySelector('.stage');
-  const fn=(e)=>{ if(e.target.closest && e.target.closest('.btn')) return;
-    stage.removeEventListener('click',fn); stage.removeEventListener('touchend',fn); next(); };
-  stage.addEventListener('click',fn,{passive:true});
-  stage.addEventListener('touchend',fn,{passive:true});
+  // 탭칩을 띄워 사용자에게 탭을 유도합니다.
+  tap.style.display='block'; 
+  
+  const fn=(e)=>{ 
+    // .btn 요소를 클릭한 경우를 제외하고
+    if(e.target.closest && e.target.closest('.btn')) return;
+    
+    // 리스너를 즉시 제거하고, 탭칩을 숨기고, 다음 함수(next)를 실행합니다.
+    document.removeEventListener('click',fn); 
+    document.removeEventListener('touchend',fn); 
+    tap.style.display='none'; 
+    next(); 
+  };
+  
+  // document 전체에 이벤트를 걸어 어떤 곳을 탭해도 동작하도록 합니다.
+  document.addEventListener('click',fn,{passive:true});
+  document.addEventListener('touchend',fn,{passive:true});
 }
 function setupStart(vid,hint){
   hint.style.display='block';
   const tap=document.getElementById('tap');
-  const start=()=>{hint.style.display='none';vid.muted=true;vid.playsInline=true;vid.play().catch(()=>{tap.style.display='block';});};
+  const start=()=>{hint.style.display='none'; vid.muted=true; vid.playsInline=true;
+    vid.play().catch(()=>{ tap.style.display='block'; });};
   ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 function heartBurst(container){
   container.innerHTML='';
   for(let i=0;i<10;i++){
-    const s=document.createElement('span'); s.textContent='❤';
-    s.style.position='relative'; s.style.left=(Math.random()*80-40)+'px';
-    s.style.animation='rise 1.5s linear forwards'; container.appendChild(s);
+    const s=document.createElement('span'); s.textContent='❤'; s.style.position='relative';
+    s.style.left=(Math.random()*80-40)+'px'; s.style.animation='rise 1.5s linear forwards';
+    container.appendChild(s);
   }
   setTimeout(()=>container.innerHTML='',1600);
 }
-
-const vid=document.getElementById('vid');
-const hint=document.getElementById('hint');
-const tap=document.getElementById('tap');
-const cont=document.getElementById('cont');
-
-const dialog=document.getElementById('dialog');
-const avatar=document.getElementById('avatar');
-const nameEl=document.getElementById('name');
-const line=document.getElementById('line');
-const btns=document.getElementById('btns');
-const hearts=document.getElementById('hearts');
-
+const vid=document.getElementById('vid'); const hint=document.getElementById('hint'); const tap=document.getElementById('tap');
+const dialog=document.getElementById('dialog'); const avatar=document.getElementById('avatar'); const nameEl=document.getElementById('name');
+const line=document.getElementById('line'); const btns=document.getElementById('btns'); const hearts=document.getElementById('hearts');
 setupStart(vid,hint);
 
-// ---- SCENE 3 dialogs ----
 function startScene3Dialogs(){
-  tap.style.display='block';
   awaitTapOnce(()=>{
-    tap.style.display='none'; dialog.style.display='block';
-    avatar.src='./assets/avatar_seongwoo.png?v=hotfix1'; nameEl.textContent='성우'; line.textContent='어? 태이다~~~~~';
+    dialog.style.display='block';
+    avatar.src='./assets/avatar_seongwoo.png'; nameEl.textContent='성우'; line.textContent='어? 태이다~~~~~';
     awaitTapOnce(()=>{
-      avatar.src='./assets/avatar_taei.png?v=hotfix1'; nameEl.textContent='태이'; line.textContent='아가~~~~ 생일축하해!! ❤️';
+      avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이'; line.textContent='아가~~~~ 생일축하해!! ❤️';
       awaitTapOnce(()=>{
         line.textContent='내가 마지막으로 줄 선물은 ...!';
         awaitTapOnce(()=>{ dialog.style.display='none'; playScene4(); });
@@ -85,77 +80,61 @@ function startScene3Dialogs(){
 }
 vid.addEventListener('ended', startScene3Dialogs, {once:true});
 
-// ---- SCENE 4 with hard watchdogs ----
 function playScene4(){
+  // Scene 4 시작 시 tapchip을 숨깁니다.
+  tap.style.display='none'; 
+
   const v2=document.createElement('video');
-  v2.src='./scene4_ticket.mp4?v=hotfix1';
-  v2.preload='auto'; v2.playsInline=true; v2.muted=true;
+  v2.src='./scene4_ticket.mp4';
+  v2.playsInline=true; v2.muted=true; v2.preload='auto';
   Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000'});
-  const stage=document.querySelector('.stage');
-  stage.appendChild(v2);
+  document.querySelector('.stage').appendChild(v2);
+  v2.play().catch(()=>{ tap.style.display='block'; });
 
-  let finished=false, watchdog=null, absWatchdog=null;
-
+  let done=false;
   const finish=()=>{
-    if(finished) return; finished=true;
-    cont.style.display='none';
-    // cleanup timers
-    if(watchdog) clearTimeout(watchdog);
-    if(absWatchdog) clearTimeout(absWatchdog);
-    // show final dialog
-    dialog.style.display='block';
-    avatar.src='./assets/avatar_taei.png?v=hotfix1'; nameEl.textContent='태이';
-    line.textContent='태이랑 같이 제주도 가자~!!! ✈️';
+    if(done) return; done=true;
+    
+    // 🚨 핵심 수정: 영상이 끝나면 v2를 DOM에서 제거하여 화면을 가리는 문제 해결
+    if (v2.parentNode) {
+        v2.parentNode.removeChild(v2); 
+    }
+
+    dialog.style.display='block'; avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이';
+    
+    // 1. 대사가 바로 뜨도록 설정
+    line.textContent='태이랑 같이 제주도 가자~!!! ✈️'; 
     btns.innerHTML='';
-    awaitTapOnce(()=>{
+
+    // 2. 탭을 기다려 선택지 버튼을 표시합니다.
+    awaitTapOnce(()=>{ 
       const o=document.createElement('a'); o.className='btn'; o.textContent='태이랑 함께할래~ 💖';
       const x=document.createElement('a'); x.className='btn'; x.textContent='넘 갑작스러워서 안갈래요! 😭';
       btns.append(o,x);
-      o.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='태이한테 뽀뽀~ (하트)'; heartBurst(hearts); awaitTapOnce(()=>location.href='./index.html'); };
-      x.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='너무 슬포요 흑흑'; awaitTapOnce(()=>location.href='./index.html'); };
+      
+      // 버튼 클릭 이벤트 핸들러
+      o.onclick=(e)=>{ 
+        e.preventDefault(); 
+        btns.innerHTML=''; 
+        line.textContent='태이한테 뽀뽀~ (하트)'; 
+        heartBurst(hearts); 
+        awaitTapOnce(()=>location.href='./index.html'); 
+      };
+      x.onclick=(e)=>{ 
+        e.preventDefault(); 
+        btns.innerHTML=''; 
+        line.textContent='너무 슬포요 흑흑'; 
+        awaitTapOnce(()=>location.href='./index.html'); 
+      };
     });
   };
 
-  const armWatchdogs=()=>{
-    // duration 기반 감시타이머 (duration + 800ms)
-    const dur = (isFinite(v2.duration) && v2.duration>0) ? v2.duration : 10; // duration 못읽으면 10초 가정
-    watchdog = setTimeout(()=>{
-      // 끝 근처면 바로 finish, 아니면 유저에게 '탭해서 계속' 노출
-      if (v2.currentTime >= (v2.duration||dur) - 0.4) finish();
-      else cont.style.display='block';
-    }, Math.min(60000, dur*1000 + 800));
-    // 절대 타임아웃 (최대 20초): 어떤 경우든 강제 진행
-    absWatchdog = setTimeout(()=>{
-      cont.style.display='block';
-    }, 20000);
-  };
-
-  // 수동 탭 폴백: 언제든 '탭해서 계속'이 보일 때 탭하면 finish
-  const manualAdvance=()=>{
-    if (cont.style.display==='block') finish();
-  };
-  stage.addEventListener('click', manualAdvance, {passive:true});
-  stage.addEventListener('touchend', manualAdvance, {passive:true});
-
-  // 재생 시도 + 준비 이벤트들
-  const tryPlay=()=>{ v2.play().catch(()=>{ tap.style.display='block'; }); };
-  v2.addEventListener('loadedmetadata', armWatchdogs, {once:true});
-  v2.addEventListener('canplaythrough', ()=>{ /* no-op; best effort */ }, {once:true});
+  // earlier simpler fallback that worked: ended + timeupdate near-end
   v2.addEventListener('ended', finish, {once:true});
   v2.addEventListener('timeupdate', ()=>{
-    if(!finished && v2.duration && v2.currentTime >= v2.duration - 0.25) finish();
-    // 진행이 멈춘 듯하면 '탭해서 계속' 띄움
-    if(!finished && v2.currentTime>0 && v2.paused) cont.style.display='block';
+    if(!done && v2.duration && v2.currentTime >= v2.duration - 0.2) finish();
   });
-  v2.addEventListener('pause', ()=>{
-    if(!finished && v2.duration && v2.currentTime >= (v2.duration - 0.25)) finish();
-  });
-  v2.addEventListener('stalled', ()=>{ cont.style.display='block'; });
-  v2.addEventListener('waiting', ()=>{ /* buffer stall */ });
-
-  tryPlay();
 }
 </script>
 </body>
 </html>
-
