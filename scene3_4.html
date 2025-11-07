@@ -1,0 +1,97 @@
+<!doctype html><html lang="ko"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Scene 3+4 (revert)</title>
+<link rel="stylesheet" href="./assets/ui.css"/>
+</head><body>
+<div class="stage">
+  <video id="vid" src="./scene3_taei.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+  <div class="hint" id="hint">🎬 START!</div>
+  <div class="tapchip" id="tap">탭!</div>
+  <div class="dialog" id="dialog">
+    <div class="row" id="row">
+      <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
+      <div class="bubble" id="bubble">
+        <div class="name" id="name">성우</div>
+        <div class="line" id="line"></div>
+        <div class="center" id="btns"></div>
+      </div>
+    </div>
+  </div>
+  <div class="hearts" id="hearts"></div>
+</div>
+<script>
+function awaitTapOnce(next){
+  const stage=document.querySelector('.stage');
+  const fn=(e)=>{ if(e.target.closest && e.target.closest('.btn')) return;
+    stage.removeEventListener('click',fn); stage.removeEventListener('touchend',fn); next(); };
+  stage.addEventListener('click',fn,{passive:true});
+  stage.addEventListener('touchend',fn,{passive:true});
+}
+function setupStart(vid,hint){
+  hint.style.display='block';
+  const tap=document.getElementById('tap');
+  const start=()=>{hint.style.display='none'; vid.muted=true; vid.playsInline=true;
+    vid.play().catch(()=>{ tap.style.display='block'; });};
+  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
+}
+function heartBurst(container){
+  container.innerHTML='';
+  for(let i=0;i<10;i++){
+    const s=document.createElement('span'); s.textContent='❤'; s.style.position='relative';
+    s.style.left=(Math.random()*80-40)+'px'; s.style.animation='rise 1.5s linear forwards';
+    container.appendChild(s);
+  }
+  setTimeout(()=>container.innerHTML='',1600);
+}
+const vid=document.getElementById('vid'); const hint=document.getElementById('hint'); const tap=document.getElementById('tap');
+const dialog=document.getElementById('dialog'); const avatar=document.getElementById('avatar'); const nameEl=document.getElementById('name');
+const line=document.getElementById('line'); const btns=document.getElementById('btns'); const hearts=document.getElementById('hearts');
+setupStart(vid,hint);
+
+function startScene3Dialogs(){
+  tap.style.display='block';
+  awaitTapOnce(()=>{
+    tap.style.display='none'; dialog.style.display='block';
+    avatar.src='./assets/avatar_seongwoo.png'; nameEl.textContent='성우'; line.textContent='어? 태이다~~~~~';
+    awaitTapOnce(()=>{
+      avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이'; line.textContent='아가~~~~ 생일축하해!! ❤️';
+      awaitTapOnce(()=>{
+        line.textContent='내가 마지막으로 줄 선물은 ...!';
+        awaitTapOnce(()=>{ dialog.style.display='none'; playScene4(); });
+      });
+    });
+  });
+}
+vid.addEventListener('ended', startScene3Dialogs, {once:true});
+
+function playScene4(){
+  const v2=document.createElement('video');
+  v2.src='./scene4_ticket.mp4';
+  v2.playsInline=true; v2.muted=true; v2.preload='auto';
+  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000'});
+  document.querySelector('.stage').appendChild(v2);
+  v2.play().catch(()=>{ tap.style.display='block'; });
+
+  let done=false;
+  const finish=()=>{
+    if(done) return; done=true;
+    dialog.style.display='block'; avatar.src='./assets/avatar_taei.png'; nameEl.textContent='태이';
+    line.textContent='태이랑 같이 제주도 가자~!!! ✈️'; btns.innerHTML='';
+    awaitTapOnce(()=>{
+      const o=document.createElement('a'); o.className='btn'; o.textContent='태이랑 함께할래~ 💖';
+      const x=document.createElement('a'); x.className='btn'; x.textContent='넘 갑작스러워서 안갈래요! 😭';
+      btns.append(o,x);
+      o.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='태이한테 뽀뽀~ (하트)'; heartBurst(hearts); awaitTapOnce(()=>location.href='./index.html'); };
+      x.onclick=(e)=>{ e.preventDefault(); btns.innerHTML=''; line.textContent='너무 슬포요 흑흑'; awaitTapOnce(()=>location.href='./index.html'); };
+    });
+  };
+
+  // earlier simpler fallback that worked: ended + timeupdate near-end
+  v2.addEventListener('ended', finish, {once:true});
+  v2.addEventListener('timeupdate', ()=>{
+    if(!done && v2.duration && v2.currentTime >= v2.duration - 0.2) finish();
+  });
+}
+</script>
+</body></html>
