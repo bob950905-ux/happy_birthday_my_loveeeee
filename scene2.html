@@ -1,3 +1,91 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>Scene 2</title><link rel="stylesheet" href="./assets/ui.css"/></head><body><div class="stage"><video id="vid" src="./scene2_wine.mp4" preload="auto" playsinline webkit-playsinline muted></video><div class="hint" id="hint">🎬 START!</div><div class="tapchip" id="tap">탭!</div><div class="dialog" id="dialog"><div class="row" id="row"><img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/><div class="bubble" id="bubble"><div class="name" id="name">성우</div><div class="line" id="line"></div><div class="center" id="btns"></div></div></div></div><div class="hearts" id="hearts"></div></div><script src="./assets/ui.js"></script><script>
-const vid=document.getElementById('vid');const hint=document.getElementById('hint');const tap=document.getElementById('tap');const dialog=document.getElementById('dialog');const avatar=document.getElementById('avatar');const nameEl=document.getElementById('name');const line=document.getElementById('line');const btns=document.getElementById('btns');setupStart(vid,hint);
-vid.addEventListener('ended',()=>{tap.style.display='inline-block';awaitTapOnce(()=>{tap.style.display='none';dialog.style.display='block';avatar.src='./assets/avatar_seongwoo.png';nameEl.textContent='성우';line.textContent='이건… 와인?';awaitTapOnce(()=>{line.textContent='태이랑 마셔야지~ 🍷';btns.innerHTML='';const home=document.createElement('a');home.href='./index.html';home.className='btn';home.textContent='다음 선물 고르러 가기 🎁';btns.appendChild(home);});});},{once:true});</script></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Scene 2 (Stabilized)</title>
+<link rel="stylesheet" href="./assets/ui.css"/>
+
+<style>
+/* 대화창이 확실히 보이도록 CSS 클래스 정의 */
+.dialog { display: none; } /* 기본적으로 숨김 */
+.dialog.show { 
+    display: block !important; 
+    z-index: 9999; /* 대화창이 항상 최상위에 오도록 설정 */
+}
+/* 탭칩이 대화창 위에서 잘 보이도록 z-index를 높게 설정 */
+.tapchip {
+    z-index: 10000 !important;
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <video id="vid" src="./scene2_wine.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+  <div class="hint" id="hint">🎬 START!</div>
+  <div class="tapchip" id="tap">탭!</div>
+  <div class="dialog" id="dialog">
+    <div class="row" id="row">
+      <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
+      <div class="bubble" id="bubble">
+        <div class="name" id="name">성우</div>
+        <div class="line" id="line"></div>
+        <div class="center" id="btns"></div>
+      </div>
+    </div>
+  </div>
+  <div class="hearts" id="hearts"></div>
+</div>
+<script src="./assets/ui.js"></script>
+<script>
+const vid=document.getElementById('vid');
+const hint=document.getElementById('hint');
+const tap=document.getElementById('tap');
+const dialog=document.getElementById('dialog');
+const avatar=document.getElementById('avatar');
+const nameEl=document.getElementById('name');
+const line=document.getElementById('line');
+const btns=document.getElementById('btns');
+
+// setupStart 함수는 ui.js에 있다고 가정합니다.
+setupStart(vid, hint);
+
+// 대화창을 표시하고 내용을 업데이트하는 유틸리티 함수
+function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우') {
+    dialog.classList.add('show');
+    avatar.src = avatarSrc;
+    nameEl.textContent = name;
+    line.textContent = text;
+    btns.innerHTML = '';
+    tap.style.display = 'block'; // 탭칩을 표시하여 탭을 유도합니다.
+}
+
+vid.addEventListener('ended', ()=>{
+    // 1. 영상 종료 후 탭칩을 띄워 탭을 기다립니다.
+    tap.style.display = 'block'; 
+    
+    // 2. 탭칩을 눌렀을 때만 다음 대사로 진행 (ui.js의 awaitTapOnce 함수 사용)
+    awaitTapOnce(()=>{
+        // --- 대화 시퀀스 시작 ---
+        
+        // 1번째 대사: 이건… 와인?
+        showDialog('이건… 와인?');
+        
+        // 2번째 탭 대기
+        awaitTapOnce(()=>{
+            // 2번째 대사: 태이랑 마셔야지~ 🍷
+            showDialog('태이랑 마셔야지~ 🍷');
+            
+            // 버튼 생성 및 탭칩 숨김
+            tap.style.display = 'none';
+            const home=document.createElement('a');
+            home.href='./index.html';
+            home.className='btn';
+            home.textContent='다음 선물 고르러 가기 🎁';
+            btns.appendChild(home);
+        });
+    });
+}, {once:true});
+</script>
+</body>
+</html>
