@@ -3,17 +3,23 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Final Stable)</title>
+<title>Scene 1 (Final Stable - Tapchip)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
 
 <style>
-.dialog { display: none; }
+.dialog { display: none; } 
 .dialog.show { 
     display: block !important; 
     z-index: 9999; 
 }
+/* 🚨 탭칩 위치/크기 수정 */
 .tapchip {
+    position: absolute; 
+    bottom: 25vh; /* 대화창 근처로 내림 */
     z-index: 10000 !important;
+    padding: 15px 30px; /* 터치 영역 확대 */
+    font-size: 1.2em; /* 폰트 크기 확대 */
+    border-radius: 20px; /* 모서리 둥글게 (선택 사항) */
 }
 </style>
 </head>
@@ -45,7 +51,6 @@ const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 
-// 🚨 ui.js에 정의된 함수 사용을 가정
 setupStart(vid, hint);
 
 // 대화창을 표시하고 내용을 업데이트하는 유틸리티 함수
@@ -58,7 +63,7 @@ function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우
     tap.style.display = 'block'; // 탭칩을 표시하여 탭을 유도
 }
 
-// 🚨 탭칩 전용 탭 함수 재정의 (ui.js를 덮어씁니다. ui.js 파일이 없다면 이 함수를 ui.js에 넣어야 합니다.)
+// 🚨 탭칩 전용 탭 함수 (탭칩을 눌러야만 넘어갑니다)
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
@@ -74,22 +79,26 @@ function awaitTapOnce(next){
 vid.addEventListener('ended', ()=>{
     tap.style.display = 'block'; 
     
+    // 1. "어? 꽃이네."
     awaitTapOnce(()=>{
-        // 1번째 대사: 어? 태이인가...?
-        showDialog('어? 태이인가...?');
+        showDialog('어? 꽃이네.');
         
-        // 2번째 탭 대기
+        // 2. "겨울에 무슨 꽃이 다 피었대."
         awaitTapOnce(()=>{
-            // 2번째 대사: 꽃이였네~~~ 태이인줄 알았네~
-            showDialog('꽃이였네~~~ 태이인줄 알았네~');
+            showDialog('겨울에 무슨 꽃이 다 피었대.');
             
-            // 버튼 생성 및 탭칩 숨김
-            tap.style.display = 'none';
-            const home=document.createElement('a');
-            home.href='./index.html';
-            home.className='btn';
-            home.textContent='다음 선물 고르러 가기 🎁';
-            btns.appendChild(home);
+            // 3. "그래도... 예쁘다."
+            awaitTapOnce(()=>{
+                showDialog('그래도... 예쁘다.');
+                
+                // 4. 버튼 표시 (대사 없이)
+                tap.style.display = 'none';
+                const home=document.createElement('a');
+                home.href='./index.html';
+                home.className='btn';
+                home.textContent='다음 선물 고르러 가기 🎁';
+                btns.appendChild(home);
+            });
         });
     });
 }, {once:true});
