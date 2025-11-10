@@ -3,33 +3,37 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Unified Tap Position)</title>
+<title>Scene 1 (Tap Fix & Unified)</title>
 <style>
 body{margin:0;background:#000;overflow:hidden;font-family:sans-serif;}
 video{width:100vw;height:100vh;object-fit:contain;}
+
+/* 대화창 */
 .dialog{display:none;}
 .dialog.show{display:block!important;z-index:10050!important;}
+.row{display:flex;align-items:flex-end;gap:12px;padding:0 18px;position:fixed;left:0;right:0;bottom:28px;}
+.avatar{width:58px;height:58px;border-radius:10px;object-fit:cover;}
+.bubble{flex:1;background:rgba(19,25,36,.92);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;color:#eaf1ff;}
+.name{font-weight:800;margin-bottom:6px;}
+.line{font-weight:700;font-size:1.05rem;line-height:1.55;}
+.center{margin-top:12px;}
 
-/* ✅ 탭칩: 씬2 기준으로 통일 (대사창 위, bottom:110px 고정) */
+/* ✅ 탭칩: 씬2 기준으로 통일 (대사창 위, bottom:110px) */
 .tapchip{
-  position:fixed!important;
-  left:50%; bottom:110px; transform:translateX(-50%);
-  display:none;
-  padding:15px 30px; border-radius:999px;
-  background:rgba(20,28,38,.9); color:#fff; font-weight:700; font-size:1.2rem;
-  border:1px solid rgba(255,255,255,.15); box-shadow:0 4px 18px rgba(0,0,0,.35);
-  width:auto!important; height:auto!important; white-space:nowrap;
-  z-index:10060!important; /* 대사창보다 위 */
+  position:fixed!important;left:50%;bottom:110px;transform:translateX(-50%);
+  display:none;padding:15px 30px;border-radius:999px;background:rgba(20,28,38,.9);
+  color:#fff;font-weight:700;font-size:1.2rem;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);width:auto!important;height:auto!important;white-space:nowrap;
+  z-index:10060!important;
 }
 .tapchip:active{transform:translateX(-50%) scale(.96);}
 
 /* START 버튼 */
-#hint {
-  position:fixed; left:50%; top:18px; transform:translateX(-50%);
-  padding:10px 14px; border-radius:999px;
-  background:rgba(20,28,38,.9); color:#fff; font-weight:800;
-  border:1px solid rgba(255,255,255,.15); box-shadow:0 4px 18px rgba(0,0,0,.35);
-  z-index:10001;
+#hint{
+  position:fixed;left:50%;top:18px;transform:translateX(-50%);
+  padding:10px 14px;border-radius:999px;background:rgba(20,28,38,.9);
+  color:#fff;font-weight:800;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);z-index:10001;
 }
 </style>
 </head>
@@ -38,61 +42,76 @@ video{width:100vw;height:100vh;object-fit:contain;}
   <video id="vid" src="./scene1_walk.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div id="hint">🎬 START!</div>
   <div id="tap" class="tapchip">탭!</div>
+
   <div id="dialog" class="dialog">
-    <div class="row" style="display:flex;align-items:flex-end;gap:12px;padding:0 18px;">
-      <img id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar" style="width:58px;height:58px;border-radius:10px;object-fit:cover;">
-      <div class="bubble" style="flex:1;background:rgba(19,25,36,.92);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;color:#eaf1ff;">
-        <div id="name" style="font-weight:800;margin-bottom:6px;">성우</div>
-        <div id="line" style="font-weight:700;font-size:1.05rem;line-height:1.55;"></div>
-        <div id="btns" style="margin-top:12px;"></div>
+    <div class="row">
+      <img id="avatar" class="avatar" src="./assets/avatar_seongwoo.png" alt="avatar">
+      <div class="bubble">
+        <div id="name" class="name">성우</div>
+        <div id="line" class="line"></div>
+        <div id="btns" class="center"></div>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-const vid=document.getElementById('vid');
-const hint=document.getElementById('hint');
-const tap=document.getElementById('tap');
-const dialog=document.getElementById('dialog');
-const avatar=document.getElementById('avatar');
-const nameEl=document.getElementById('name');
-const line=document.getElementById('line');
-const btns=document.getElementById('btns');
+const vid   = document.getElementById('vid');
+const hint  = document.getElementById('hint');
+const tap   = document.getElementById('tap');
+const dialog= document.getElementById('dialog');
+const avatar= document.getElementById('avatar');
+const nameEl= document.getElementById('name');
+const line  = document.getElementById('line');
+const btns  = document.getElementById('btns');
 
-let tapAction=null,tapGuard=false;
-function setTap(next){tapAction=next;tap.style.display='inline-flex';}
-function clearTap(){tapAction=null;tap.style.display='none';}
-tap.addEventListener('click',()=>{if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,200);const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
-tap.addEventListener('touchend',e=>{e.preventDefault();if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,200);const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
+/* --- 탭칩 제어 (씬2와 동일) --- */
+let tapAction=null, tapGuard=false;
+function setTap(next){ tapAction=next; tap.style.display='inline-flex'; }
+function clearTap(){ tapAction=null; tap.style.display='none'; }
+function fireTap(){
+  if(tapGuard) return;
+  tapGuard=true; setTimeout(()=>tapGuard=false,150);
+  const fn=tapAction; clearTap(); if(typeof fn==='function') fn();
+}
+tap.addEventListener('click', fireTap);
+tap.addEventListener('touchend', e=>{ e.preventDefault(); fireTap(); });
 
+/* --- START --- */
 function setupStart(){
   hint.style.display='block';
   const start=()=>{
     hint.style.display='none';
     vid.muted=true; vid.playsInline=true;
-    vid.play().catch(()=>setTap(()=>vid.play()));
+    vid.play().catch(()=> setTap(()=> vid.play() ));
     ['click','touchend','pointerdown'].forEach(ev=>document.removeEventListener(ev,start));
   };
   ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
-function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
+/* --- 대사 --- */
+function showDialog(text, who='성우', face='./assets/avatar_seongwoo.png'){
   dialog.classList.add('show');
-  avatar.src=avatarSrc;
-  nameEl.textContent=who;
-  line.textContent=text;
-  btns.innerHTML='';
+  avatar.src = face;
+  nameEl.textContent = who;
+  line.textContent = text;
+  btns.innerHTML = '';
 }
 
+/* --- 실행 --- */
 setupStart();
-vid.addEventListener('ended',()=>{
+
+/* ✅ 핵심: ended 이후 setTap 체인이 확실히 걸리도록 once 리스너 + 즉시 showDialog + setTap */
+vid.addEventListener('ended', ()=> {
+  // 1
   showDialog('어? 꽃이네.');
-  setTap(()=>{
+  setTap(()=> {
+    // 2
     showDialog('겨울에 무슨 꽃이 다 피었대.');
-    setTap(()=>{
+    setTap(()=> {
+      // 3
       showDialog('그래도... 예쁘다.');
-      setTap(()=>{
+      setTap(()=> {
         clearTap();
         const home=document.createElement('a');
         home.href='./index.html';
@@ -102,7 +121,7 @@ vid.addEventListener('ended',()=>{
       });
     });
   });
-},{once:true});
+}, { once:true });
 </script>
 </body>
 </html>
