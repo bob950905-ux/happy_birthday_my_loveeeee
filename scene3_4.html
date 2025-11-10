@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3+4 (Final Working Version - Stable)</title>
+<title>Scene 3+4 (Final Working Version - Integrated)</title>
 <link rel="stylesheet" href="./assets/ui.css"/> 
 
 <style>
+/* 💖 하트 애니메이션과 탭칩 위치/크기 긴급 복구 포함 */
 .dialog {
     display: none;
     opacity: 0;
@@ -20,7 +21,6 @@
     z-index: 9999 !important; 
 }
 
-/* 💖 하트가 위에서 아래로 떨어지는 애니메이션 */
 @keyframes fall {
     0% { transform: translateY(-10vh) scale(1); opacity: 1; }
     100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
@@ -29,7 +29,21 @@
     position: absolute; 
     pointer-events: none; 
 }
-/* 탭칩 위치/크기 CSS 삭제 (기존 위치/크기로 돌아감) */
+
+.tapchip {
+    position: absolute; 
+    right: 30px; 
+    left: auto;
+    bottom: 25vh;
+    z-index: 10000 !important;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    border-radius: 20px; 
+    border: 2px solid white; 
+    background-color: rgba(0, 0, 0, 0.7); 
+    color: white; 
+    cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -61,9 +75,7 @@ const line = document.getElementById('line');
 const btns = document.getElementById('btns'); 
 const hearts = document.getElementById('hearts');
 
-// --- 유틸리티 함수 ---
-
-/** 🚨 탭칩 전용 탭 함수 (탭칩을 눌러야만 넘어갑니다) */
+// --- 통합 함수: awaitTapOnce ---
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
@@ -76,6 +88,7 @@ function awaitTapOnce(next){
   tap.addEventListener('touchend',fn,{passive:true});
 }
 
+// --- 통합 함수: heartBurst ---
 function heartBurst(container){
   container.innerHTML='';
   for(let i=0;i<10;i++){
@@ -89,6 +102,7 @@ function heartBurst(container){
   setTimeout(()=>container.innerHTML='',1600);
 }
 
+// --- 통합 함수: setupStart ---
 function setupStart(vid,hint){
   hint.style.display='block';
   const start=()=>{
@@ -99,6 +113,7 @@ function setupStart(vid,hint){
   ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
+// --- 통합 함수: updateDialog ---
 function updateDialog(name, avatarSrc, text, hideTapChip=false){
     dialog.classList.add('show');
     dialog.style.zIndex = '9999'; 
