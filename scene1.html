@@ -3,21 +3,21 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Fixed — Tap Above Dialog)</title>
+<title>Scene 1 (Tap Always Above Dialog)</title>
 <style>
 :root { color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
 .stage { position:fixed; inset:0; }
 
-/* 🎥 비디오는 맨 뒤 */
+/* 비디오는 항상 맨뒤 */
 video {
   position:absolute; inset:0; width:100vw; height:100vh;
-  object-fit:contain; background:#000; z-index:0!important;
+  object-fit:contain; background:#000; z-index:0 !important;
 }
 
-/* 🎬 START 버튼 */
-#hint {
+/* START */
+#hint{
   position:fixed; left:50%; top:18px; transform:translateX(-50%);
   padding:10px 14px; border-radius:999px;
   background:rgba(20,28,38,.9); color:#fff; font-weight:800;
@@ -26,35 +26,21 @@ video {
   z-index:10001;
 }
 
-/* 🟢 탭칩 (씬2 기준 + 대사보다 위로!) */
-.tapchip {
-  position:fixed!important;
-  left:50%; bottom:110px; transform:translateX(-50%);
-  display:none;
-  padding:15px 30px; border-radius:999px;
-  background:rgba(20,28,38,.9); color:#fff; font-weight:800; font-size:1.2rem;
-  border:1px solid rgba(255,255,255,.15);
-  box-shadow:0 4px 18px rgba(0,0,0,.35);
-  width:auto!important; height:auto!important; white-space:nowrap;
-  z-index:1000000!important; /* ✅ 대사창보다 위! */
-}
-.tapchip:active{transform:translateX(-50%) scale(.96);}
-
-/* 💬 대화창 */
-.dialog {
+/* 대화창: 위에 뜨되, 빈 영역은 클릭 통과 */
+.dialog{
   position:fixed; left:0; right:0; bottom:28px;
   display:none;
-  z-index:999999!important; /* 탭보다 살짝 아래 */
+  z-index:2147483000 !important;  /* 매우 높게 */
+  pointer-events:none;            /* 빈 영역은 통과 */
 }
-.dialog.show{ display:block!important; }
-
+.dialog.show{ display:block !important; }
 .row{ display:flex; align-items:flex-end; gap:12px; padding:0 18px; }
 .avatar{ width:58px; height:58px; border-radius:10px; object-fit:cover; }
 .bubble{
   flex:1; background:rgba(19,25,36,.92);
   border:1px solid rgba(255,255,255,.12);
-  border-radius:14px; padding:14px;
-  color:#eaf1ff; box-shadow:0 6px 22px rgba(0,0,0,.35);
+  border-radius:14px; padding:14px; color:#eaf1ff; box-shadow:0 6px 22px rgba(0,0,0,.35);
+  pointer-events:auto;           /* 말풍선 내부만 클릭 가능 */
 }
 .name{ font-weight:800; margin-bottom:6px; }
 .line{ font-weight:700; font-size:1.05rem; line-height:1.55; }
@@ -64,16 +50,31 @@ video {
   padding:11px 14px; border-radius:12px; font-weight:800; font-size:.98rem;
   background:#30435f; color:#fff; border:1px solid rgba(255,255,255,.12);
   text-decoration:none; min-width:180px;
+  pointer-events:auto;           /* 버튼은 당연히 클릭 */
 }
 .btn:active{ transform:translateY(1px); }
+
+/* ✅ 탭칩: 무조건 최상위 + 대사창 앞 */
+.tapchip{
+  position:fixed !important;
+  left:50%; bottom:110px; transform:translateX(-50%);
+  display:none;
+  padding:15px 30px; border-radius:999px;
+  background:rgba(20,28,38,.9); color:#fff; font-weight:800; font-size:1.2rem;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+  width:auto !important; height:auto !important; white-space:nowrap;
+  z-index:2147483647 !important; /* ← 최상단 고정 */
+}
+.tapchip:active{ transform:translateX(-50%) scale(.96); }
 </style>
 </head>
 <body>
 <div class="stage">
   <video id="vid" src="./scene1_walk.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div id="hint">🎬 START!</div>
-  <div id="tap" class="tapchip">탭!</div>
 
+  <!-- dialog를 먼저 두고, tap을 뒤에 둔다 (사파리 페인팅 케이스 방지) -->
   <div id="dialog" class="dialog">
     <div class="row">
       <img id="avatar" class="avatar" src="./assets/avatar_seongwoo.png" alt="avatar">
@@ -84,6 +85,9 @@ video {
       </div>
     </div>
   </div>
+
+  <!-- ✅ 탭칩은 DOM에서도 dialog 뒤에 위치 -->
+  <div id="tap" class="tapchip">탭!</div>
 </div>
 
 <script>
