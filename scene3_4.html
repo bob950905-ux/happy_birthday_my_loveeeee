@@ -31,11 +31,14 @@
     pointer-events: none; 
 }
 
-/* 🚨 탭칩 위치 수정: 화면 하단 대화창 근처로 내림 */
+/* 🚨 탭칩 위치/크기 수정 */
 .tapchip {
     position: absolute; 
-    bottom: 25vh; /* 대화창 위로 내린 위치 */
-    z-index: 10000 !important; 
+    bottom: 25vh; /* 대화창 근처로 내림 */
+    z-index: 10000 !important;
+    padding: 15px 30px; /* 터치 영역 확대 */
+    font-size: 1.2em; /* 폰트 크기 확대 */
+    border-radius: 20px; 
 }
 </style>
 </head>
@@ -70,17 +73,15 @@ const hearts = document.getElementById('hearts');
 
 // --- 유틸리티 함수 ---
 
-/** 🚨 탭칩 전용 탭 함수: tapchip을 눌러야만 다음 단계로 넘어갑니다. */
+/** 🚨 탭칩 전용 탭 함수 (씬3/4는 자체적으로 정의합니다) */
 function awaitTapOnce(next){
   tap.style.display='block'; 
-  
   const fn=(e)=>{ 
     tap.removeEventListener('click',fn); 
     tap.removeEventListener('touchend',fn); 
     tap.style.display='none'; 
     next(); 
   };
-  
   tap.addEventListener('click',fn,{passive:true});
   tap.addEventListener('touchend',fn,{passive:true});
 }
@@ -118,15 +119,31 @@ function updateDialog(name, avatarSrc, text, hideTapChip=false){
 }
 
 function startScene3Dialogs(){
+  // 1. 성우: “어? 태이다~~~~~”
   updateDialog('성우', './assets/avatar_seongwoo.png', '어? 태이다~~~~~');
   
   awaitTapOnce(()=>{
-    updateDialog('태이', './assets/avatar_taei.png', '아가~~~~ 생일축하해!! ❤️');
+    // 2. 태이: “아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.”
+    updateDialog('태이', './assets/avatar_taei.png', '아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.');
+    
     awaitTapOnce(()=>{
-      line.textContent = '내가 마지막으로 줄 선물은 ...!';
-      awaitTapOnce(()=>{ 
-        dialog.classList.remove('show');
-        playScene4(); 
+      // 3. 태이: “그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁”
+      updateDialog('태이', './assets/avatar_taei.png', '그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁');
+      
+      awaitTapOnce(()=>{
+        // 4. 태이: “바로 나야!!! 💖”
+        updateDialog('태이', './assets/avatar_taei.png', '바로 나야!!! 💖');
+
+        awaitTapOnce(()=>{
+          // 5. 🚨 수정된 대사: "히히 나도 선물이고! 진짜 마지막 선물은.....!"
+          updateDialog('태이', './assets/avatar_taei.png', '히히 나도 선물이고! 진짜 마지막 선물은.....!');
+
+          awaitTapOnce(()=>{
+            // 6. 씬4 영상 재생 시작
+            dialog.classList.remove('show');
+            playScene4(); 
+          });
+        });
       });
     });
   });
@@ -152,8 +169,7 @@ function playScene4(){
   const finish=()=>{
     if(done) return; done=true;
 
-    // 1. 🖼️ 배경 이미지 설정: HTML <img> 태그 사용
-    const lastFrameUrl = v2.src.replace('.mp4', '.png') + '?v=2025110706'; // 버전 번호 변경
+    const lastFrameUrl = v2.src.replace('.mp4', '.png') + '?v=2025110706'; 
     
     const imgElement = document.createElement('img');
     imgElement.src = lastFrameUrl;
@@ -169,7 +185,6 @@ function playScene4(){
     
     const stageEl = document.querySelector('.stage');
     
-    // 2. 이미지 로딩 완료 후 다음 로직 실행
     imgElement.onload = () => {
         if (v2.parentNode) {
             v2.parentNode.removeChild(v2); 
@@ -177,37 +192,59 @@ function playScene4(){
         }
         stageEl.appendChild(imgElement); 
 
-        // 1. 태이의 질문 표시
-        updateDialog('태이', './assets/avatar_taei.png', '태이랑 같이 제주도 가자~!!! ✈️');
+        // 7. 태이: “우리 같이 떠나자, 자기야! ✈️” (자동 노출)
+        updateDialog('태이', './assets/avatar_taei.png', '우리 같이 떠나자, 자기야! ✈️');
         btns.innerHTML='';
 
-        // 2. 탭을 기다려 성우의 생각과 선택지 버튼을 표시
+        // 8. 탭을 기다려 성우의 감동 대사
         awaitTapOnce(()=>{ 
-            // 화자를 성우로 변경하고 성우의 생각 대사를 넣습니다.
-            avatar.src = './assets/avatar_seongwoo.png';
-            nameEl.textContent = '성우';
-            line.textContent = '내 마음은... 어떤걸 선택해야 할까?'; 
+            // 성우: “헐... 완전 감동이야. 내 마음은 이미 출발했는데?”
+            updateDialog('성우', './assets/avatar_seongwoo.png', '헐... 완전 감동이야. 내 마음은 이미 출발했는데?');
             
-            // 선택지 버튼 생성
-            const o=document.createElement('a'); o.className='btn'; o.textContent='태이랑 함께할래~ 💖';
-            const x=document.createElement('a'); x.className='btn'; x.textContent='넘 갑작스러워서 안갈래요! 😭';
-            btns.append(o,x);
-            tap.style.display = 'none'; // 버튼이 나타나면 탭칩을 숨김
-            
-            // 버튼 클릭 이벤트 핸들러
-            o.onclick=(e)=>{ 
-                e.preventDefault(); 
-                btns.innerHTML=''; 
-                updateDialog('태이', './assets/avatar_taei.png', '태이한테 뽀뽀~ (하트)');
-                heartBurst(hearts); 
-                awaitTapOnce(()=>location.href='./index.html'); 
-            };
-            x.onclick=(e)=>{ 
-                e.preventDefault(); 
-                btns.innerHTML=''; 
-                updateDialog('태이', './assets/avatar_taei.png', '너무 슬포요 흑흑');
-                awaitTapOnce(()=>location.href='./index.html'); 
-            };
+            // 9. 탭을 기다려 선택지 버튼 표시
+            awaitTapOnce(()=>{
+                 tap.style.display = 'none'; // 버튼이 나타나면 탭칩 숨김
+                 
+                 const o=document.createElement('a'); o.className='btn'; o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
+                 const x=document.createElement('a'); x.className='btn'; x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
+                 btns.append(o,x);
+
+                 // 💖 버튼 1 (선택 시)
+                 o.onclick=(e)=>{ 
+                     e.preventDefault(); 
+                     btns.innerHTML=''; 
+                     // 9. 태이: “태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!”
+                     updateDialog('태이', './assets/avatar_taei.png', '태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!');
+                     heartBurst(hearts); 
+                     
+                     // 10. 메인 화면 버튼 표시
+                     awaitTapOnce(()=>{
+                         tap.style.display = 'none';
+                         const home=document.createElement('a');
+                         home.href='./index.html';
+                         home.className='btn';
+                         home.textContent='메인 화면으로 돌아가기';
+                         btns.appendChild(home);
+                     });
+                 };
+                 // 😭 버튼 2 (선택 시)
+                 x.onclick=(e)=>{ 
+                     e.preventDefault(); 
+                     btns.innerHTML=''; 
+                     // 9. 태이: “너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!”
+                     updateDialog('태이', './assets/avatar_taei.png', '너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!');
+                     
+                     // 10. 메인 화면 버튼 표시
+                     awaitTapOnce(()=>{
+                         tap.style.display = 'none';
+                         const home=document.createElement('a');
+                         home.href='./index.html';
+                         home.className='btn';
+                         home.textContent='메인 화면으로 돌아가기';
+                         btns.appendChild(home);
+                     });
+                 };
+            });
         });
     };
 
