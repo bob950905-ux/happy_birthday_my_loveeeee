@@ -3,37 +3,55 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 2</title>
+<title>Scene 2 (Ultimate Stability Fix)</title>
 <style>
+/* 탭칩 CSS (안정화된 위치와 크기 포함) */
 body{margin:0;background:#000;overflow:hidden;}
 video{width:100vw;height:100vh;object-fit:contain;}
 .dialog{display:none;}
 .dialog.show{display:block!important;z-index:9999!important;}
+
 .tapchip{
- position:fixed;left:50%;bottom:110px;transform:translateX(-50%);
- display:none;padding:12px 18px;border-radius:999px;
- background:rgba(20,28,38,.9);color:#fff;font-weight:700;font-size:1rem;
- border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 18px rgba(0,0,0,.35);
- z-index:10000;
+ position:fixed!important;
+ left:50%;
+ bottom:110px;
+ transform:translateX(-50%);
+ display:none;
+ padding:15px 30px; /* 터치 영역 충분히 확보 */
+ border-radius:999px;
+ background:rgba(20,28,38,.9);
+ color:#fff;
+ font-weight:700;
+ font-size:1.2rem; /* 크기 확대 */
+ border:1px solid rgba(255,255,255,.15);
+ box-shadow:0 4px 18px rgba(0,0,0,.35);
+ z-index:10002!important; /* 탭칩이 모든 요소 위에 오도록 보장 */
+ width: auto !important;
+ height: auto !important;
 }
 .tapchip:active{transform:translateX(-50%) scale(.96);}
+
+/* START 힌트도 탭칩보다 아래에 오도록 설정 */
+#hint {
+    z-index: 10001 !important;
+}
 </style>
 </head>
 <body>
 <div class="stage">
-  <video id="vid" src="./scene2_wine.mp4" preload="auto" playsinline webkit-playsinline muted></video>
-  <div id="hint">🎬 START!</div>
-  <div id="tap" class="tapchip">탭!</div>
-  <div id="dialog" class="dialog">
-    <div class="row">
-      <img id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar" style="width:60px;height:60px;border-radius:50%;"/>
-      <div class="bubble">
-        <div id="name">성우</div>
-        <div id="line"></div>
-        <div id="btns"></div>
-      </div>
-    </div>
-  </div>
+  <video id="vid" src="./scene2_wine.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+  <div id="hint">🎬 START!</div>
+  <div id="tap" class="tapchip">탭!</div>
+  <div id="dialog" class="dialog">
+    <div class="row">
+      <img id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar" style="width:60px;height:60px;border-radius:50%;"/>
+      <div class="bubble">
+        <div id="name">성우</div>
+        <div id="line"></div>
+        <div id="btns"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -47,59 +65,89 @@ const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 
 let tapAction=null,tapGuard=false;
+
+// --- 탭 로직 (원본 유지 및 안정화) ---
 function setTap(next){tapAction=next;tap.style.display='inline-flex';}
 function clearTap(){tapAction=null;tap.style.display='none';}
-tap.addEventListener('click',e=>{if(e.target!==tap)return;
+tap.addEventListener('click',e=>{
+  if(tapGuard)return;
+  tapGuard=true;setTimeout(()=>tapGuard=false,200);
+  const fn=tapAction;clearTap();if(typeof fn==='function')fn();
+});
+tap.addEventListener('touchend',e=>{
   e.preventDefault();if(tapGuard)return;
   tapGuard=true;setTimeout(()=>tapGuard=false,200);
-  const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
-tap.addEventListener('touchend',e=>{e.preventDefault();if(tapGuard)return;
-  tapGuard=true;setTimeout(()=>tapGuard=false,200);
-  const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
+  const fn=tapAction;clearTap();if(typeof fn==='function')fn();
+});
 
 function setupStart(){
- hint.style.display='block';
- const start=()=>{hint.style.display='none';vid.muted=true;vid.playsInline=true;
- vid.play().catch(()=>setTap(()=>vid.play()));};
- ['click','touchend','pointerdown'].forEach(ev=>
- document.addEventListener(ev,start,{once:true,passive:true}));
-}
-function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
- dialog.classList.add('show');
- avatar.src=avatarSrc;
- nameEl.textContent=who;
- line.textContent=text;
- btns.innerHTML='';
+ hint.style.display='block';
+ const start=()=>{
+    // 🚨 START 버튼 강제 숨김
+    hint.style.display='none';
+    vid.muted=true;vid.playsInline=true;
+    vid.play().catch(()=>{
+        // 자동 재생 실패 시 비디오 재생을 위해 setTap 호출
+        setTap(()=>vid.play());
+    });
+    // 이벤트 리스너 제거
+    ['click','touchend','pointerdown'].forEach(ev => document.removeEventListener(ev, start));
+};
+ ['click','touchend','pointerdown'].forEach(ev=>
+ document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
+function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
+ dialog.classList.add('show');
+ avatar.src=avatarSrc;
+ nameEl.textContent=who;
+ line.textContent=text;
+ btns.innerHTML='';
+}
+
+// --- 대화 로직 시작 ---
 setupStart();
 vid.addEventListener('ended',()=>{
- showDialog('여기… 와인이네?');
- setTap(()=>{
-   showDialog('태이가 숨겨둔 건가 봐.');
-   setTap(()=>{
-     showDialog('이거 마시면 딱 좋겠다.');
-     setTap(()=>{
-       clearTap();
-       const o=document.createElement('a');o.className='btn';o.textContent='와인바 가서 분위기 있게 마시자! 🥂';
-       const x=document.createElement('a');x.className='btn';x.textContent='집에서 오붓하게 마시는 게 좋아! 💖';
-       btns.append(o,x);
-       function choose(){
-         showDialog('좋아! 그렇게 하자! 태이랑 함께라면 어디든 좋아!');
-         setTap(()=>{
-           clearTap();
-           const home=document.createElement('a');
-           home.href='./index.html';
-           home.className='btn';
-           home.textContent='다음 선물 고르러 가기 🎁';
-           btns.appendChild(home);
-         });
-       }
-       o.addEventListener('click',e=>{e.preventDefault();choose();},{once:true});
-       x.addEventListener('click',e=>{e.preventDefault();choose();},{once:true});
-     });
-   });
- });
+  // 1. "와인...? 이런 데 왜 있지?"
+  showDialog('와인...? 이런 데 왜 있지?');
+  setTap(()=>{
+    // 2. "태이가 숨겨둔 건가 봐."
+    showDialog('태이가 숨겨둔 건가 봐.');
+    setTap(()=>{
+      // 3. "이거 마시면 딱 좋겠다."
+      showDialog('이거 마시면 딱 좋겠다.');
+      setTap(()=>{
+        // 4. 선택지 버튼 등장
+        clearTap(); // 탭칩 숨김
+        
+        const o=document.createElement('a');o.className='btn';o.textContent='와인바 가서 분위기 있게 마시자! 🥂';
+        const x=document.createElement('a');x.className='btn';x.textContent='집에서 오붓하게 마시는 게 좋아! 💖';
+        btns.append(o,x);
+        
+        // 5. 선택지 클릭 처리 및 6. 다음 선물 버튼 표시
+        function choose(e){
+            e.preventDefault(); 
+            btns.innerHTML = ''; // 버튼 제거
+            
+            // 5. 확정 대사
+            showDialog('좋아! 그렇게 하자! 태이랑 함께라면 어디든 좋아!');
+            
+            // 6. 다음 탭을 기다려 메인 버튼 표시
+            setTap(()=>{
+                clearTap();
+                const home=document.createElement('a');
+                home.href='./index.html';
+                home.className='btn';
+                home.textContent='다음 선물 고르러 가기 🎁';
+                btns.appendChild(home);
+            });
+        }
+        // 버튼 클릭 이벤트 등록
+        o.addEventListener('click',choose,{once:true});
+        x.addEventListener('click',choose,{once:true});
+     });
+   });
+ });
 },{once:true});
 </script>
 </body>
