@@ -3,16 +3,31 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 2 (Final Stable - Integrated)</title>
+<title>Scene 2 (Final Stable - Fixed Tap System)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
-
 <style>
-.dialog { display: none; } 
-.dialog.show { 
-    display: block !important; 
-    z-index: 9999;
-}
-/* 탭칩 관련 CSS 삭제 */
+  .dialog { display:none; }
+  .dialog.show { display:block!important; z-index:9999; }
+
+  /* 탭칩을 대화창 위로 내리고 크기도 키움 */
+  .tapchip{
+    position: fixed;
+    left: 50%;
+    bottom: 110px;           /* 필요하면 90~130px로 미세조정 */
+    transform: translateX(-50%);
+    display: none;
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: rgba(20,28,38,.9);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    border: 1px solid rgba(255,255,255,.15);
+    box-shadow: 0 4px 18px rgba(0,0,0,.35);
+    user-select: none; -webkit-user-select: none;
+    transition: bottom .2s ease;
+  }
+  .tapchip:active{ transform: translateX(-50%) scale(.96); }
 </style>
 </head>
 <body>
@@ -20,110 +35,122 @@
   <video id="vid" src="./scene2_wine.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div class="hint" id="hint">🎬 START!</div>
   <div class="tapchip" id="tap">탭!</div>
+
   <div class="dialog" id="dialog">
-    <div class="row" id="row">
+    <div class="row">
       <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
-      <div class="bubble" id="bubble">
+      <div class="bubble">
         <div class="name" id="name">성우</div>
         <div class="line" id="line"></div>
         <div class="center" id="btns"></div>
       </div>
     </div>
   </div>
+
   <div class="hearts" id="hearts"></div>
 </div>
+
 <script>
-const vid=document.getElementById('vid');
-const hint=document.getElementById('hint');
-const tap=document.getElementById('tap');
-const dialog=document.getElementById('dialog');
-const avatar=document.getElementById('avatar');
-const nameEl=document.getElementById('name');
-const line=document.getElementById('line');
-const btns=document.getElementById('btns');
-const hearts=document.getElementById('hearts');
+/* --------------- 요소 --------------- */
+const vid    = document.getElementById('vid');
+const hint   = document.getElementById('hint');
+const tapEl  = document.getElementById('tap');
+const dialog = document.getElementById('dialog');
+const avatar = document.getElementById('avatar');
+const nameEl = document.getElementById('name');
+const lineEl = document.getElementById('line');
+const btns   = document.getElementById('btns');
 
-// --- 통합 함수: awaitTapOnce (탭칩 전용 로직) ---
-function awaitTapOnce(next){
-  tap.style.display='block'; 
-  const fn=(e)=>{ 
-    tap.removeEventListener('click',fn); 
-    tap.removeEventListener('touchend',fn); 
-    tap.style.display = 'none'; 
-    next(); 
+/* ============== TAP 전용 진행 ============== */
+let tapAction=null, tapGuard=false;
+
+function setTap(next, label='탭!'){
+  tapAction = next;
+  tapEl.textContent = label;
+  tapEl.style.display = 'inline-flex';
+}
+function clearTap(){
+  tapAction = null;
+  tapEl.style.display = 'none';
+}
+function onTap(e){
+  if(e.target!==tapEl) return;               // 칩만 허용
+  e.preventDefault(); e.stopPropagation();
+  if(tapGuard) return; tapGuard=true; setTimeout(()=>tapGuard=false,200);
+  const fn = tapAction; clearTap();
+  if(typeof fn==='function') fn();
+}
+tapEl.addEventListener('touchend', onTap, {passive:false});
+tapEl.addEventListener('click',    onTap, {passive:false});
+window.addEventListener('click',(e)=>{ if(e.target!==tapEl) e.stopPropagation(); }, {capture:true});
+
+/* ============== START & 재생 ============== */
+function setupStart(video, startHint){
+  startHint.style.display='none';
+  video.addEventListener('canplay',()=>{ startHint.style.display='block'; }, {once:true});
+
+  const begin=()=>{
+    startHint.style.display='none';
+    video.muted=true; video.playsInline=true;
+    video.play().catch(()=>{ setTap(()=>video.play(),'탭!'); });
   };
-  tap.addEventListener('click',fn,{passive:true});
-  tap.addEventListener('touchend',fn,{passive:true});
+  ['pointerdown','touchend','click'].forEach(ev=>{
+    document.addEventListener(ev, begin, {once:true, passive:true});
+  });
 }
 
-// --- 통합 함수: setupStart ---
-function setupStart(vid,hint){
-  hint.style.display='block';
-  const start=()=>{
-    hint.style.display='none'; 
-    vid.muted=true; vid.playsInline=true;
-    vid.play().catch(()=>{ tap.style.display='block'; });
-  };
-  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
+/* ============== 대화창 ============== */
+function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', who='성우'){
+  dialog.classList.add('show');
+  avatar.src = avatarSrc;
+  nameEl.textContent = who;
+  lineEl.textContent = text;
+  btns.innerHTML = '';
 }
 
-// --- 통합 함수: showDialog ---
-function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우') {
-    dialog.classList.add('show');
-    avatar.src = avatarSrc;
-    nameEl.textContent = name;
-    line.textContent = text;
-    btns.innerHTML = '';
-    tap.style.display = 'block';
-}
-
-// --- 초기 실행 ---
+/* --------------- 실행 --------------- */
 setupStart(vid, hint);
 
+/* 비디오 끝 → 탭칩으로 단계 진행 */
 vid.addEventListener('ended', ()=>{
-    tap.style.display = 'block'; 
-    
-    // 1. “와인...? 이런 데 왜 있지?”
-    awaitTapOnce(()=>{
-        showDialog('와인...? 이런 데 왜 있지?');
-        
-        // 2. “태이가 숨겨둔 건가 봐.”
-        awaitTapOnce(()=>{
-            showDialog('태이가 숨겨둔 건가 봐.');
-            
-            // 3. “이거 마시면 딱 좋겠다.”
-            awaitTapOnce(()=>{
-                showDialog('이거 마시면 딱 좋겠다.');
-                
-                // 4. 선택지 버튼 등장 (대사 없음)
-                tap.style.display = 'none'; 
-                
-                const o=document.createElement('a'); o.className='btn'; o.textContent='와인바 가서 분위기 있게 마시자! 🥂';
-                const x=document.createElement('a'); x.className='btn'; x.textContent='집에서 오붓하게 마시는 게 좋아! 💖';
-                btns.append(o,x);
-                
-                // 5. 선택지 클릭 처리
-                o.onclick=x.onclick=(e)=>{ 
-                    e.preventDefault(); 
-                    btns.innerHTML='';
-                    
-                    // 확정 대사 출력
-                    showDialog('좋아! 그렇게 하자! 태이랑 함께라면 어디든 좋아!');
-                    
-                    // 6. 다음 선물 버튼 표시
-                    awaitTapOnce(()=>{
-                        tap.style.display = 'none';
-                        const home=document.createElement('a');
-                        home.href='./index.html';
-                        home.className='btn';
-                        home.textContent='다음 선물 고르러 가기 🎁';
-                        btns.appendChild(home);
-                    });
-                };
-            });
-        });
+  // 1) “여기… 와인이네?”
+  setTap(()=>{
+    showDialog('여기… 와인이네?');
+
+    // 2) “태이가 숨겨둔 건가 봐.”
+    setTap(()=>{
+      showDialog('태이가 숨겨둔 건가 봐.');
+
+      // 3) “이거 마시면 딱 좋겠다.”
+      setTap(()=>{
+        showDialog('이거 마시면 딱 좋겠다.');
+
+        // 4) 선택지 버튼 (대사 없이)
+        btns.innerHTML='';
+        const o = document.createElement('a');
+        const x = document.createElement('a');
+        o.className='btn'; o.textContent='와인바 가서 분위기 있게 마시자! 🥂';
+        x.className='btn'; x.textContent='집에서 오붓하게 마시는 게 좋아! 💖';
+        btns.append(o,x);
+
+        // 5) 선택 확정 → 확정 대사 → 다음 선물 버튼
+        function choose(){
+          showDialog('좋아! 그렇게 하자! 태이랑 함께라면 어디든 좋아!');
+          setTap(()=>{
+            btns.innerHTML='';
+            const home=document.createElement('a');
+            home.href='./index.html';
+            home.className='btn';
+            home.textContent='다음 선물 고르러 가기 🎁';
+            btns.appendChild(home);
+          });
+        }
+        o.addEventListener('click', (e)=>{ e.preventDefault(); choose(); }, {once:true});
+        x.addEventListener('click', (e)=>{ e.preventDefault(); choose(); }, {once:true});
+      });
     });
-}, {once:true});
+  });
+},{once:true});
 </script>
 </body>
 </html>
