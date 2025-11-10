@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 2 (Final Stable)</title>
+<title>Scene 2 (Final Stable - Tapchip)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
 
 <style>
@@ -12,8 +12,14 @@
     display: block !important; 
     z-index: 9999;
 }
+/* 🚨 탭칩 위치/크기 수정 */
 .tapchip {
+    position: absolute; 
+    bottom: 25vh; /* 대화창 근처로 내림 */
     z-index: 10000 !important;
+    padding: 15px 30px; /* 터치 영역 확대 */
+    font-size: 1.2em; /* 폰트 크기 확대 */
+    border-radius: 20px; /* 모서리 둥글게 (선택 사항) */
 }
 </style>
 </head>
@@ -45,26 +51,24 @@ const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 
-// 🚨 ui.js에 정의된 함수 사용을 가정
 setupStart(vid, hint);
 
-// 대화창을 표시하고 내용을 업데이트하는 유틸리티 함수
 function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우') {
     dialog.classList.add('show');
     avatar.src = avatarSrc;
     nameEl.textContent = name;
     line.textContent = text;
     btns.innerHTML = '';
-    tap.style.display = 'block'; // 탭칩을 표시하여 탭을 유도
+    tap.style.display = 'block';
 }
 
-// 🚨 탭칩 전용 탭 함수 재정의 (ui.js를 덮어씁니다.)
+// 🚨 탭칩 전용 탭 함수
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
     tap.removeEventListener('click',fn); 
     tap.removeEventListener('touchend',fn); 
-    tap.style.display = 'none'; // 탭칩 숨김
+    tap.style.display = 'none'; 
     next(); 
   };
   tap.addEventListener('click',fn,{passive:true});
@@ -74,22 +78,44 @@ function awaitTapOnce(next){
 vid.addEventListener('ended', ()=>{
     tap.style.display = 'block'; 
     
+    // 1. "와인...? 이런 데 왜 있지?"
     awaitTapOnce(()=>{
-        // 1번째 대사: 이건… 와인?
-        showDialog('이건… 와인?');
+        showDialog('와인...? 이런 데 왜 있지?');
         
-        // 2번째 탭 대기
+        // 2. "태이가 숨겨둔 건가 봐."
         awaitTapOnce(()=>{
-            // 2번째 대사: 태이랑 마셔야지~ 🍷
-            showDialog('태이랑 마셔야지~ 🍷');
+            showDialog('태이가 숨겨둔 건가 봐.');
             
-            // 버튼 생성 및 탭칩 숨김
-            tap.style.display = 'none';
-            const home=document.createElement('a');
-            home.href='./index.html';
-            home.className='btn';
-            home.textContent='다음 선물 고르러 가기 🎁';
-            btns.appendChild(home);
+            // 3. "이거 마시면 딱 좋겠다."
+            awaitTapOnce(()=>{
+                showDialog('이거 마시면 딱 좋겠다.');
+                
+                // 4. 선택지 버튼 등장 (대사 없음)
+                tap.style.display = 'none'; 
+                
+                const o=document.createElement('a'); o.className='btn'; o.textContent='와인바 가서 분위기 있게 마시자! 🥂';
+                const x=document.createElement('a'); x.className='btn'; x.textContent='집에서 오붓하게 마시는 게 좋아! 💖';
+                btns.append(o,x);
+                
+                // 5. 선택지 클릭 처리
+                o.onclick=x.onclick=(e)=>{ 
+                    e.preventDefault(); 
+                    btns.innerHTML='';
+                    
+                    // 확정 대사 출력
+                    showDialog('좋아! 그렇게 하자! 태이랑 함께라면 어디든 좋아!');
+                    
+                    // 6. 다음 선물 버튼 표시
+                    awaitTapOnce(()=>{
+                        tap.style.display = 'none';
+                        const home=document.createElement('a');
+                        home.href='./index.html';
+                        home.className='btn';
+                        home.textContent='다음 선물 고르러 가기 🎁';
+                        btns.appendChild(home);
+                    });
+                };
+            });
         });
     });
 }, {once:true});
