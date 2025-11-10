@@ -12,21 +12,7 @@
     display: block !important; 
     z-index: 9999; 
 }
-/* 탭칩 위치/크기 긴급 복구 */
-.tapchip {
-    position: absolute; 
-    right: 30px; 
-    left: auto;
-    bottom: 25vh; /* 대화창 근처로 내림 */
-    z-index: 10000 !important;
-    padding: 15px 30px; /* 터치 영역 확대 */
-    font-size: 1.2em; /* 폰트 크기 확대 */
-    border-radius: 20px; 
-    border: 2px solid white; 
-    background-color: rgba(0, 0, 0, 0.7); 
-    color: white; 
-    cursor: pointer;
-}
+/* 탭칩 관련 CSS 삭제 (기존 위치/크기로 돌아감) */
 </style>
 </head>
 <body>
@@ -68,7 +54,7 @@ function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우
     tap.style.display = 'block';
 }
 
-// 🚨 탭칩 전용 탭 함수
+// 🚨 탭칩 전용 탭 함수 (안정적인 로직 유지)
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
