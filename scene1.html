@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Tap Fix & Unified)</title>
+<title>Scene 1 (Final Robust)</title>
 <style>
 body{margin:0;background:#000;overflow:hidden;font-family:sans-serif;}
-video{width:100vw;height:100vh;object-fit:contain;}
+video{width:100vw;height:100vh;object-fit:contain}
 
 /* 대화창 */
 .dialog{display:none;}
 .dialog.show{display:block!important;z-index:10050!important;}
 .row{display:flex;align-items:flex-end;gap:12px;padding:0 18px;position:fixed;left:0;right:0;bottom:28px;}
-.avatar{width:58px;height:58px;border-radius:10px;object-fit:cover;}
-.bubble{flex:1;background:rgba(19,25,36,.92);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;color:#eaf1ff;}
-.name{font-weight:800;margin-bottom:6px;}
-.line{font-weight:700;font-size:1.05rem;line-height:1.55;}
-.center{margin-top:12px;}
+.avatar{width:58px;height:58px;border-radius:10px;object-fit:cover}
+.bubble{flex:1;background:rgba(19,25,36,.92);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;color:#eaf1ff}
+.name{font-weight:800;margin-bottom:6px}
+.line{font-weight:700;font-size:1.05rem;line-height:1.55}
+.center{margin-top:12px}
 
-/* ✅ 탭칩: 씬2 기준으로 통일 (대사창 위, bottom:110px) */
+/* 탭칩(씬2 기준 통일) */
 .tapchip{
   position:fixed!important;left:50%;bottom:110px;transform:translateX(-50%);
   display:none;padding:15px 30px;border-radius:999px;background:rgba(20,28,38,.9);
@@ -26,7 +26,7 @@ video{width:100vw;height:100vh;object-fit:contain;}
   box-shadow:0 4px 18px rgba(0,0,0,.35);width:auto!important;height:auto!important;white-space:nowrap;
   z-index:10060!important;
 }
-.tapchip:active{transform:translateX(-50%) scale(.96);}
+.tapchip:active{transform:translateX(-50%) scale(.96)}
 
 /* START 버튼 */
 #hint{
@@ -65,7 +65,7 @@ const nameEl= document.getElementById('name');
 const line  = document.getElementById('line');
 const btns  = document.getElementById('btns');
 
-/* --- 탭칩 제어 (씬2와 동일) --- */
+/* 탭칩 */
 let tapAction=null, tapGuard=false;
 function setTap(next){ tapAction=next; tap.style.display='inline-flex'; }
 function clearTap(){ tapAction=null; tap.style.display='none'; }
@@ -77,7 +77,7 @@ function fireTap(){
 tap.addEventListener('click', fireTap);
 tap.addEventListener('touchend', e=>{ e.preventDefault(); fireTap(); });
 
-/* --- START --- */
+/* START */
 function setupStart(){
   hint.style.display='block';
   const start=()=>{
@@ -89,7 +89,7 @@ function setupStart(){
   ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
-/* --- 대사 --- */
+/* 대사 */
 function showDialog(text, who='성우', face='./assets/avatar_seongwoo.png'){
   dialog.classList.add('show');
   avatar.src = face;
@@ -98,11 +98,12 @@ function showDialog(text, who='성우', face='./assets/avatar_seongwoo.png'){
   btns.innerHTML = '';
 }
 
-/* --- 실행 --- */
-setupStart();
+/* 종료 처리(대사 체인) */
+let endHandled = false;
+function onVideoEnd(){
+  if(endHandled) return;
+  endHandled = true;
 
-/* ✅ 핵심: ended 이후 setTap 체인이 확실히 걸리도록 once 리스너 + 즉시 showDialog + setTap */
-vid.addEventListener('ended', ()=> {
   // 1
   showDialog('어? 꽃이네.');
   setTap(()=> {
@@ -121,7 +122,43 @@ vid.addEventListener('ended', ()=> {
       });
     });
   });
+}
+
+/* 실행 */
+setupStart();
+
+/* 1) 표준 ended */
+vid.addEventListener('ended', onVideoEnd, { once:true });
+
+/* 2) 워치독: duration 기반 폴링 */
+let poll = null;
+const startPoll = () => {
+  if (poll) return;
+  poll = setInterval(()=>{
+    const d = vid.duration;
+    if (isFinite(d) && d > 0 && vid.currentTime >= d - 0.15) onVideoEnd();
+    if (vid.ended) onVideoEnd();
+  }, 120);
+};
+vid.addEventListener('loadedmetadata', startPoll, { once:true });
+vid.addEventListener('playing', startPoll, { once:true });
+
+/* 3) 최후 수단: 하드 타임아웃 (비디오 길이 모르면 20초) */
+let hardTimeout = setTimeout(()=> onVideoEnd(), 20000);
+vid.addEventListener('loadedmetadata', ()=>{
+  if (isFinite(vid.duration) && vid.duration > 0) {
+    clearTimeout(hardTimeout);
+    hardTimeout = setTimeout(()=> onVideoEnd(), Math.ceil(vid.duration*1000)+1500);
+  }
 }, { once:true });
+
+/* 4) 사용자가 먼저 탭했는데 실은 영상이 이미 끝자락이었을 수 있는 대비 */
+document.addEventListener('visibilitychange', ()=>{
+  if (document.visibilityState === 'visible') {
+    const d = vid.duration;
+    if ((isFinite(d) && d > 0 && vid.currentTime >= d - 0.15) || vid.ended) onVideoEnd();
+  }
+});
 </script>
 </body>
 </html>
