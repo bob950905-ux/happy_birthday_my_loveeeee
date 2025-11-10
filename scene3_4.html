@@ -3,136 +3,151 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3+4 (Final Working Version - Integrated)</title>
-<link rel="stylesheet" href="./assets/ui.css"/> 
+<title>Scene 3+4 (Final Stable - TapChip Only)</title>
+<link rel="stylesheet" href="./assets/ui.css"/>
 
 <style>
-.dialog {
-    display: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease-in-out;
-}
-.dialog.show {
-    display: block !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    z-index: 9999 !important; 
-}
+  .dialog{ display:none; opacity:0; visibility:hidden; transition:opacity .25s ease; }
+  .dialog.show{ display:block!important; opacity:1!important; visibility:visible!important; z-index:9999!important; }
 
-/* 💖 하트 애니메이션 */
-@keyframes fall {
-    0% { transform: translateY(-10vh) scale(1); opacity: 1; }
-    100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
-}
-.hearts span {
-    position: absolute; 
-    pointer-events: none; 
-}
-/* 탭칩 관련 CSS 삭제 */
+  /* 하트 이펙트 */
+  @keyframes fall{ 0%{transform:translateY(-10vh) scale(1);opacity:1;}
+                   100%{transform:translateY(100vh) scale(.5);opacity:0;} }
+  .hearts span{ position:absolute; pointer-events:none; }
+
+  /* 탭칩: 대화창 위로 내리고 눌리기 편하게 키움 */
+  .tapchip{
+    position: fixed;
+    left: 50%;
+    bottom: 110px;              /* 필요시 90~130px로 조절 */
+    transform: translateX(-50%);
+    display: none;
+    padding: 12px 18px;
+    border-radius: 999px;
+    background: rgba(20,28,38,.9);
+    color:#fff; font-weight:700; font-size:1rem;
+    border:1px solid rgba(255,255,255,.15);
+    box-shadow:0 4px 18px rgba(0,0,0,.35);
+    user-select:none; -webkit-user-select:none;
+    transition: bottom .2s ease;
+    z-index: 10000;
+  }
+  .tapchip:active{ transform: translateX(-50%) scale(.96); }
 </style>
 </head>
 <body>
 <div class="stage">
   <video id="vid" src="./scene3_taei.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+
+  <!-- 시작 버튼 -->
   <div class="hint" id="hint">🎬 START!</div>
+
+  <!-- 탭칩: 이 버튼만 눌려야 진행됨 -->
   <div class="tapchip" id="tap">탭!</div>
+
+  <!-- 대화창 -->
   <div class="dialog" id="dialog">
-    <div class="row" id="row">
+    <div class="row">
       <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
-      <div class="bubble" id="bubble">
+      <div class="bubble">
         <div class="name" id="name">성우</div>
         <div class="line" id="line"></div>
         <div class="center" id="btns"></div>
       </div>
     </div>
   </div>
+
   <div class="hearts" id="hearts"></div>
 </div>
+
 <script>
-// --- 전역 요소 정의 ---
-const vid = document.getElementById('vid'); 
-const hint = document.getElementById('hint'); 
-const tap = document.getElementById('tap');
-const dialog = document.getElementById('dialog'); 
-const avatar = document.getElementById('avatar'); 
+/* ---------- 요소 ---------- */
+const stage  = document.querySelector('.stage');
+const vid    = document.getElementById('vid');
+const hint   = document.getElementById('hint');
+const tapEl  = document.getElementById('tap');
+const dialog = document.getElementById('dialog');
+const avatar = document.getElementById('avatar');
 const nameEl = document.getElementById('name');
-const line = document.getElementById('line'); 
-const btns = document.getElementById('btns'); 
+const lineEl = document.getElementById('line');
+const btns   = document.getElementById('btns');
 const hearts = document.getElementById('hearts');
 
-// --- 통합 함수: awaitTapOnce (탭칩 전용 로직) ---
-function awaitTapOnce(next){
-  tap.style.display='block'; 
-  const fn=(e)=>{ 
-    tap.removeEventListener('click',fn); 
-    tap.removeEventListener('touchend',fn); 
-    tap.style.display='none'; 
-    next(); 
+/* ========== TAP칩 전용 진행 유틸 ========== */
+let tapAction=null, tapGuard=false;
+function setTap(next, label='탭!'){
+  tapAction = next;
+  tapEl.textContent = label;
+  tapEl.style.display = 'inline-flex';
+}
+function clearTap(){
+  tapAction = null;
+  tapEl.style.display = 'none';
+}
+function onTap(e){
+  if(e.target!==tapEl) return;            // 칩만 허용
+  e.preventDefault(); e.stopPropagation();
+  if(tapGuard) return;
+  tapGuard=true; setTimeout(()=>tapGuard=false, 220);  // iOS touchend→click 이중발화 방지
+  const fn = tapAction; clearTap();
+  if(typeof fn==='function') fn();
+}
+tapEl.addEventListener('touchend', onTap, {passive:false});
+tapEl.addEventListener('click',    onTap, {passive:false});
+/* 문서 전역 클릭 진행 차단(예전 전역 핸들러 무력화) */
+window.addEventListener('click', (e)=>{ if(e.target!==tapEl) e.stopPropagation(); }, {capture:true});
+
+/* ========== START & 재생 ========== */
+function setupStart(video, startHint){
+  startHint.style.display='none';
+  video.addEventListener('canplay', ()=>{ startHint.style.display='block'; }, {once:true});
+  const begin=()=>{
+    startHint.style.display='none';
+    video.muted=true; video.playsInline=true;
+    video.play().catch(()=>{ setTap(()=>video.play(),'탭!'); }); // 인앱/사파리 재생홀딩 우회
   };
-  tap.addEventListener('click',fn,{passive:true});
-  tap.addEventListener('touchend',fn,{passive:true});
+  ['pointerdown','touchend','click'].forEach(ev=>{
+    document.addEventListener(ev, begin, {once:true, passive:true});
+  });
 }
 
-// --- 통합 함수: heartBurst ---
+/* ========== 대화창 ========== */
+function showDialog(text, who='성우', avatarSrc='./assets/avatar_seongwoo.png'){
+  dialog.classList.add('show');
+  avatar.src = avatarSrc;
+  nameEl.textContent = who;
+  lineEl.textContent = text;
+  btns.innerHTML = '';
+}
+
+/* ========== 하트 이펙트 ========== */
 function heartBurst(container){
   container.innerHTML='';
-  for(let i=0;i<10;i++){
-    const s=document.createElement('span'); s.textContent='❤'; 
-    s.style.position='absolute'; 
-    s.style.left=(Math.random()*80)+'vw'; 
-    s.style.top='-50px'; 
-    s.style.animation='fall 1.5s linear forwards'; 
+  for(let i=0;i<12;i++){
+    const s=document.createElement('span');
+    s.textContent='❤';
+    s.style.left=(Math.random()*80)+'vw';
+    s.style.top='-40px';
+    s.style.animation='fall 1.5s linear forwards';
     container.appendChild(s);
   }
   setTimeout(()=>container.innerHTML='',1600);
 }
 
-// --- 통합 함수: setupStart ---
-function setupStart(vid,hint){
-  hint.style.display='block';
-  const start=()=>{
-    hint.style.display='none'; 
-    vid.muted=true; vid.playsInline=true;
-    vid.play().catch(()=>{ tap.style.display='block'; });
-  };
-  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
-}
-
-// --- 통합 함수: updateDialog ---
-function updateDialog(name, avatarSrc, text, hideTapChip=false){
-    dialog.classList.add('show');
-    dialog.style.zIndex = '9999'; 
-    avatar.src = avatarSrc;
-    nameEl.textContent = name;
-    line.textContent = text;
-    btns.innerHTML = '';
-}
-
+/* ---------- Scene 3 대사 흐름 ---------- */
 function startScene3Dialogs(){
-  // 1. 성우: “어? 태이다~~~~~”
-  updateDialog('성우', './assets/avatar_seongwoo.png', '어? 태이다~~~~~');
-  
-  awaitTapOnce(()=>{
-    // 2. 태이: “아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.”
-    updateDialog('태이', './assets/avatar_taei.png', '아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.');
-    
-    awaitTapOnce(()=>{
-      // 3. 태이: “그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁”
-      updateDialog('태이', './assets/avatar_taei.png', '그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁');
-      
-      awaitTapOnce(()=>{
-        // 4. 태이: “바로 나야!!! 💖”
-        updateDialog('태이', './assets/avatar_taei.png', '바로 나야!!! 💖');
-
-        awaitTapOnce(()=>{
-          // 5. "히히 나도 선물이고! 진짜 마지막 선물은.....!"
-          updateDialog('태이', './assets/avatar_taei.png', '히히 나도 선물이고! 진짜 마지막 선물은.....!');
-
-          awaitTapOnce(()=>{
-            // 6. 씬4 영상 재생 시작
+  showDialog('어? 태이다~~~~~','성우','./assets/avatar_seongwoo.png');
+  setTap(()=>{
+    showDialog('아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.','태이','./assets/avatar_taei.png');
+    setTap(()=>{
+      showDialog('그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁','태이','./assets/avatar_taei.png');
+      setTap(()=>{
+        showDialog('바로 나야!!! 💖','태이','./assets/avatar_taei.png');
+        setTap(()=>{
+          showDialog('ㅋㅋㅋㅋ 장난이고! 진짜 마지막 선물은.....!','태이','./assets/avatar_taei.png');
+          setTap(()=>{
             dialog.classList.remove('show');
-            playScene4(); 
+            playScene4();  // 씬4 시작
           });
         });
       });
@@ -140,118 +155,85 @@ function startScene3Dialogs(){
   });
 }
 
-// --- Scene 4 로직 ---
-let v2 = null; 
-
+/* ---------- Scene 4 ---------- */
+let v2=null;
 function playScene4(){
-  tap.style.display='none'; 
-
+  clearTap();
+  // 비디오2 생성
   v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
   v2.playsInline=true; v2.muted=true; v2.preload='auto';
-  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000'});
-  document.querySelector('.stage').appendChild(v2);
+  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000',zIndex:1});
+  stage.appendChild(v2);
+  // 기존 vid 제거
+  if(vid.parentNode) vid.parentNode.removeChild(vid);
 
-  if (vid.parentNode) vid.parentNode.removeChild(vid); 
-
-  v2.play().catch(()=>{ tap.style.display='block'; });
-
-  let done=false;
   const finish=()=>{
-    if(done) return; done=true;
+    // 안전가드
+    if(!v2) return;
+    // 마지막 프레임 대체 이미지(있으면 사용, 없으면 건너뜀)
+    const bg = document.createElement('img');
+    bg.src = v2.src.replace('.mp4','.png') + '?v=20251110';
+    Object.assign(bg.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',zIndex:1,background:'#000'});
 
-    // 1. 🖼️ 배경 이미지 설정: HTML <img> 태그 사용
-    const lastFrameUrl = v2.src.replace('.mp4', '.png') + '?v=2025110706'; 
-    
-    const imgElement = document.createElement('img');
-    imgElement.src = lastFrameUrl;
-    imgElement.id = 'scene4_bg';
-    Object.assign(imgElement.style, {
-        position: 'absolute',
-        inset: '0',
-        width: '100vw',
-        height: '100vh',
-        objectFit: 'contain',
-        zIndex: '1' 
-    });
-    
-    const stageEl = document.querySelector('.stage');
-    
-    imgElement.onload = () => {
-        if (v2.parentNode) {
-            v2.parentNode.removeChild(v2); 
-            v2 = null; 
-        }
-        stageEl.appendChild(imgElement); 
+    const onReady = ()=>{
+      if(v2 && v2.parentNode) v2.parentNode.removeChild(v2);
+      v2=null;
+      stage.appendChild(bg);
 
-        // 7. 태이: “우리 같이 떠나자, 자기야! ✈️” (자동 노출)
-        updateDialog('태이', './assets/avatar_taei.png', '우리 같이 떠나자, 자기야! ✈️');
-        btns.innerHTML='';
+      // 씬4 종료 직후 대사 자동 노출
+      showDialog('우리 같이 떠나자, 자기야! ✈️','태이','./assets/avatar_taei.png');
 
-        // 8. 탭을 기다려 성우의 감동 대사
-        awaitTapOnce(()=>{ 
-            // 성우: “헐... 완전 감동이야. 내 마음은 이미 출발했는데?”
-            updateDialog('성우', './assets/avatar_seongwoo.png', '헐... 완전 감동이야. 내 마음은 이미 출발했는데?');
-            
-            // 9. 탭을 기다려 선택지 버튼 표시
-            awaitTapOnce(()=>{
-                 tap.style.display = 'none'; // 버튼이 나타나면 탭칩 숨김
-                 
-                 const o=document.createElement('a'); o.className='btn'; o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
-                 const x=document.createElement('a'); x.className='btn'; x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
-                 btns.append(o,x);
+      // 성우 감동 → 선택지
+      setTap(()=>{
+        showDialog('헐... 완전 감동이야. 내 마음은 이미 출발했는데?','성우','./assets/avatar_seongwoo.png');
+        setTap(()=>{
+          btns.innerHTML='';
+          const o=document.createElement('a'); o.className='btn'; o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
+          const x=document.createElement('a'); x.className='btn'; x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
+          btns.append(o,x);
 
-                 // 💖 버튼 1 (선택 시)
-                 o.onclick=(e)=>{ 
-                     e.preventDefault(); 
-                     btns.innerHTML=''; 
-                     // 9. 태이: “태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!”
-                     updateDialog('태이', './assets/avatar_taei.png', '태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!');
-                     heartBurst(hearts); 
-                     
-                     // 10. 메인 화면 버튼 표시
-                     awaitTapOnce(()=>{
-                         tap.style.display = 'none';
-                         const home=document.createElement('a');
-                         home.href='./index.html';
-                         home.className='btn';
-                         home.textContent='메인 화면으로 돌아가기';
-                         btns.appendChild(home);
-                     });
-                 };
-                 // 😭 버튼 2 (선택 시)
-                 x.onclick=(e)=>{ 
-                     e.preventDefault(); 
-                     btns.innerHTML=''; 
-                     // 9. 태이: “너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!”
-                     updateDialog('태이', './assets/avatar_taei.png', '너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!');
-                     
-                     // 10. 메인 화면 버튼 표시
-                     awaitTapOnce(()=>{
-                         tap.style.display = 'none';
-                         const home=document.createElement('a');
-                         home.href='./index.html';
-                         home.className='btn';
-                         home.textContent='메인 화면으로 돌아가기';
-                         btns.appendChild(home);
-                     });
-                 };
+          // 선택 핸들러
+          function decide(goHappy){
+            btns.innerHTML='';
+            if(goHappy){
+              showDialog('태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!','태이','./assets/avatar_taei.png');
+              heartBurst(hearts);
+            }else{
+              showDialog('너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!','태이','./assets/avatar_taei.png');
+            }
+            setTap(()=>{
+              btns.innerHTML='';
+              const home=document.createElement('a');
+              home.href='./index.html';
+              home.className='btn';
+              home.textContent='메인 화면으로 돌아가기';
+              btns.appendChild(home);
             });
+          }
+          o.addEventListener('click',(e)=>{e.preventDefault();decide(true);},{once:true});
+          x.addEventListener('click',(e)=>{e.preventDefault();decide(false);},{once:true});
         });
+      });
     };
+    bg.onload = onReady;
+    bg.onerror = onReady; // PNG 없으면 바로 진행
 
-    imgElement.onerror = imgElement.onload; 
-    imgElement.src = lastFrameUrl; 
+    // 로드 트리거
+    bg.src = bg.src;
   };
 
+  // 재생 & 종료 감시
+  const tryPlay=()=>{ v2.play().catch(()=>{ setTap(()=>v2.play(),'탭!'); }); };
   v2.addEventListener('ended', finish, {once:true});
-  v2.addEventListener('timeupdate', ()=>{
-    if(!done && v2.duration && v2.currentTime >= v2.duration - 0.2) finish();
+  v2.addEventListener('timeupdate', ()=>{ 
+    if(v2.duration && v2.currentTime >= v2.duration-0.2) finish();
   });
+  tryPlay();
 }
 
-// --- 초기 실행 ---
-setupStart(vid,hint);
+/* ---------- 부트 ---------- */
+setupStart(vid, hint);
 vid.addEventListener('ended', startScene3Dialogs, {once:true});
 </script>
 </body>
