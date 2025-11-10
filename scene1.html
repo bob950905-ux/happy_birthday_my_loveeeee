@@ -3,16 +3,17 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Stabilized)</title>
+<title>Scene 1 (Final Stable)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
 
 <style>
-/* 대화창이 확실히 보이도록 CSS 클래스 정의 */
-.dialog { display: none; } /* 기본적으로 숨김 */
+.dialog { display: none; }
 .dialog.show { 
     display: block !important; 
-    /* ui.css에 opacity나 z-index 설정이 있다면 여기에 !important 추가 가능 */
-    z-index: 9999;
+    z-index: 9999; 
+}
+.tapchip {
+    z-index: 10000 !important;
 }
 </style>
 </head>
@@ -44,7 +45,7 @@ const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 
-// setupStart 함수는 ui.js에 있다고 가정합니다.
+// 🚨 ui.js에 정의된 함수 사용을 가정
 setupStart(vid, hint);
 
 // 대화창을 표시하고 내용을 업데이트하는 유틸리티 함수
@@ -54,19 +55,26 @@ function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우
     nameEl.textContent = name;
     line.textContent = text;
     btns.innerHTML = '';
-    tap.style.display = 'block'; // 탭칩을 표시하여 탭을 유도합니다.
+    tap.style.display = 'block'; // 탭칩을 표시하여 탭을 유도
+}
+
+// 🚨 탭칩 전용 탭 함수 재정의 (ui.js를 덮어씁니다. ui.js 파일이 없다면 이 함수를 ui.js에 넣어야 합니다.)
+function awaitTapOnce(next){
+  tap.style.display='block'; 
+  const fn=(e)=>{ 
+    tap.removeEventListener('click',fn); 
+    tap.removeEventListener('touchend',fn); 
+    tap.style.display = 'none'; // 탭칩 숨김
+    next(); 
+  };
+  tap.addEventListener('click',fn,{passive:true});
+  tap.addEventListener('touchend',fn,{passive:true});
 }
 
 vid.addEventListener('ended', ()=>{
-    // 1. 영상 종료 후 탭칩을 띄워 탭을 기다립니다.
     tap.style.display = 'block'; 
     
-    // 2. 탭칩을 눌렀을 때만 다음 대사로 진행 (ui.js의 awaitTapOnce 함수 사용)
     awaitTapOnce(()=>{
-        tap.style.display = 'none'; // 다음 대사가 준비될 때까지 탭칩 숨김
-        
-        // --- 대화 시퀀스 시작 ---
-        
         // 1번째 대사: 어? 태이인가...?
         showDialog('어? 태이인가...?');
         
