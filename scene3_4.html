@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3 + 4 (Ultimate Stability Fix)</title>
+<title>Scene 3 + 4 (Stable Full Version)</title>
 <style>
 body{margin:0;background:#000;overflow:hidden;font-family:sans-serif;}
 video,img.bg{width:100vw;height:100vh;object-fit:contain;background:#000;position:absolute;inset:0;}
@@ -154,19 +154,26 @@ function playScene4(){
   v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
   v2.playsInline=true;v2.muted=true;v2.preload='auto';
-  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000'});
-  document.querySelector('.stage').appendChild(v2);
-  if(v1.parentNode)v1.parentNode.removeChild(v1);
+  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000',zIndex:1});
+  const stage=document.querySelector('.stage');
+  stage.appendChild(v2);
+
+  const old=document.getElementById('v1');
+  if(old&&old.parentNode)old.parentNode.removeChild(old);
   v2.play().catch(()=>setTap(()=>v2.play()));
 
   let done=false;
   const finish=()=>{
     if(done)return;done=true;
     const bg=document.createElement('img');
-    bg.className='bg';
-    bg.src=v2.src.replace('.mp4','.png');
-    document.querySelector('.stage').appendChild(bg);
+    bg.src='./scene4_ticket.png';
+    Object.assign(bg.style,{
+      position:'absolute',inset:'0',width:'100vw',height:'100vh',
+      objectFit:'contain',zIndex:1,pointerEvents:'none'
+    });
+    stage.appendChild(bg);
     if(v2.parentNode)v2.parentNode.removeChild(v2);
+    v2=null;
 
     say('태이','./assets/avatar_taei.png','우리 같이 떠나자, 자기야! ✈️');
     setTap(()=>{
@@ -176,42 +183,30 @@ function playScene4(){
         const o=document.createElement('a');o.className='btn';o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
         const x=document.createElement('a');x.className='btn';x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
         btns.append(o,x);
-
         o.onclick=e=>{
           e.preventDefault();
           say('태이','./assets/avatar_taei.png','태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!');
           heartBurst();
-          setTap(()=>{
-            clearTap();
-            const home=document.createElement('a');
-            home.href='./index.html';
-            home.className='btn';
-            home.textContent='메인 화면으로 돌아가기';
-            btns.appendChild(home);
-          });
+          setTap(()=>{clearTap();const home=document.createElement('a');home.href='./index.html';home.className='btn';home.textContent='메인 화면으로 돌아가기';btns.appendChild(home);});
         };
         x.onclick=e=>{
           e.preventDefault();
           say('태이','./assets/avatar_taei.png','너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!');
-          setTap(()=>{
-            clearTap();
-            const home=document.createElement('a');
-            home.href='./index.html';
-            home.className='btn';
-            home.textContent='메인 화면으로 돌아가기';
-            btns.appendChild(home);
-          });
+          setTap(()=>{clearTap();const home=document.createElement('a');home.href='./index.html';home.className='btn';home.textContent='메인 화면으로 돌아가기';btns.appendChild(home);});
         };
       });
     });
   };
+
+  // 종료 감시
   v2.addEventListener('ended',finish,{once:true});
-  v2.addEventListener('timeupdate',()=>{
-    if(!done&&v2.duration&&v2.currentTime>=v2.duration-0.2)finish();
-  });
+  let poll=null;
+  const check=()=>{if(poll)return;poll=setInterval(()=>{const d=v2.duration;if((isFinite(d)&&d>0&&v2.currentTime>=d-0.15)||v2.ended)finish();},150);};
+  v2.addEventListener('loadedmetadata',check,{once:true});
+  v2.addEventListener('playing',check,{once:true});
+  setTimeout(()=>finish(),20000);
 }
 
-/* 시작 */
 setupStart();
 v1.addEventListener('ended',runScene3,{once:true});
 </script>
