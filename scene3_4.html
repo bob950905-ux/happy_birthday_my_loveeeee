@@ -31,14 +31,20 @@
     pointer-events: none; 
 }
 
-/* 🚨 탭칩 위치/크기 수정 */
+/* 🚨 탭칩 위치/크기 긴급 복구 */
 .tapchip {
     position: absolute; 
+    right: 30px; 
+    left: auto;
     bottom: 25vh; /* 대화창 근처로 내림 */
     z-index: 10000 !important;
     padding: 15px 30px; /* 터치 영역 확대 */
     font-size: 1.2em; /* 폰트 크기 확대 */
     border-radius: 20px; 
+    border: 2px solid white; 
+    background-color: rgba(0, 0, 0, 0.7); 
+    color: white; 
+    cursor: pointer;
 }
 </style>
 </head>
@@ -73,7 +79,7 @@ const hearts = document.getElementById('hearts');
 
 // --- 유틸리티 함수 ---
 
-/** 🚨 탭칩 전용 탭 함수 (씬3/4는 자체적으로 정의합니다) */
+/** 🚨 탭칩 전용 탭 함수 */
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
@@ -169,6 +175,7 @@ function playScene4(){
   const finish=()=>{
     if(done) return; done=true;
 
+    // 1. 🖼️ 배경 이미지 설정: HTML <img> 태그 사용
     const lastFrameUrl = v2.src.replace('.mp4', '.png') + '?v=2025110706'; 
     
     const imgElement = document.createElement('img');
