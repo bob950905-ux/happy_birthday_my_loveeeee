@@ -3,30 +3,41 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1</title>
+<title>Scene 1 (Ultimate Stability Fix)</title>
 
 <style>
+/* 🚨 탭칩 CSS 복구 및 안정화 (비정상적으로 길어지는 문제 해결) */
 body {margin:0;background:#000;overflow:hidden;}
 video {width:100vw;height:100vh;object-fit:contain;}
 .dialog{display:none;}
 .dialog.show{display:block!important;z-index:9999!important;}
+
 .tapchip{
-  position:fixed;
+  position:fixed!important; /* 위치 고정 */
   left:50%;
   bottom:110px;
   transform:translateX(-50%);
   display:none;
-  padding:12px 18px;
+  padding:15px 30px; /* 터치 영역 충분히 확보 */
   border-radius:999px;
   background:rgba(20,28,38,.9);
   color:#fff;
   font-weight:700;
-  font-size:1rem;
+  font-size:1.2rem; /* 크기 확대 */
   border:1px solid rgba(255,255,255,.15);
   box-shadow:0 4px 18px rgba(0,0,0,.35);
-  z-index:10000;
+  z-index:10001; /* 모든 요소 위에 오도록 z-index 극대화 */
+  width: auto !important; /* 너비가 비정상적으로 늘어나는 것 방지 */
+  height: auto !important; /* 높이가 비정상적으로 늘어나는 것 방지 */
 }
 .tapchip:active{transform:translateX(-50%) scale(.96);}
+
+/* START 힌트도 대화창 위에 오도록 z-index 설정 */
+.hint {
+    position: fixed;
+    z-index: 10002; 
+    /* ... ui.css의 다른 스타일을 따른다고 가정 ... */
+}
 </style>
 </head>
 <body>
@@ -57,23 +68,43 @@ const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 
 let tapAction=null,tapGuard=false;
+
+// --- 원본 탭 로직 유지: 탭칩을 눌렀을 때만 작동 ---
 function setTap(next){tapAction=next;tap.style.display='inline-flex';}
 function clearTap(){tapAction=null;tap.style.display='none';}
-tap.addEventListener('click',e=>{if(e.target!==tap)return;
+tap.addEventListener('click',e=>{
+  if(tapGuard)return;
+  tapGuard=true;setTimeout(()=>tapGuard=false,200);
+  const fn=tapAction;clearTap();if(typeof fn==='function')fn();
+});
+tap.addEventListener('touchend',e=>{
   e.preventDefault();if(tapGuard)return;
   tapGuard=true;setTimeout(()=>tapGuard=false,200);
-  const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
-tap.addEventListener('touchend',e=>{e.preventDefault();if(tapGuard)return;
-  tapGuard=true;setTimeout(()=>tapGuard=false,200);
-  const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
+  const fn=tapAction;clearTap();if(typeof fn==='function')fn();
+});
 
+// --- 🚨 setupStart 수정: START 버튼 잔존 문제 해결 ---
 function setupStart(){
   hint.style.display='block';
-  const start=()=>{hint.style.display='none';vid.muted=true;vid.playsInline=true;
-  vid.play().catch(()=>setTap(()=>vid.play()));};
-  ['click','touchend','pointerdown'].forEach(ev=>
-  document.addEventListener(ev,start,{once:true,passive:true}));
+  
+  const start=()=>{
+    // 🚨 START 버튼을 이벤트 발생 즉시 무조건 숨김
+    hint.style.display='none'; 
+    vid.muted=true;vid.playsInline=true;
+    
+    vid.play().catch(()=>{
+      // 자동 재생 실패 시, 비디오 재생을 위한 탭을 설정
+      setTap(()=>vid.play());
+    });
+    
+    // 이벤트 리스너 제거
+    ['click','touchend','pointerdown'].forEach(ev => document.removeEventListener(ev, start));
+  };
+  
+  // 최초 클릭 이벤트 리스너 등록
+  ['click','touchend','pointerdown'].forEach(ev => document.addEventListener(ev, start, {once:true,passive:true}));
 }
+
 function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
   dialog.classList.add('show');
   avatar.src=avatarSrc;
@@ -82,6 +113,7 @@ function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
   btns.innerHTML='';
 }
 
+// --- 초기 실행 및 대화 로직 ---
 setupStart();
 vid.addEventListener('ended',()=>{
   showDialog('어? 꽃이네.');
