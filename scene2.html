@@ -12,6 +12,7 @@
     display: block !important; 
     z-index: 9999;
 }
+/* 탭칩 관련 CSS 삭제 */
 </style>
 </head>
 <body>
@@ -42,7 +43,7 @@ const line=document.getElementById('line');
 const btns=document.getElementById('btns');
 const hearts=document.getElementById('hearts');
 
-// --- 통합 함수: awaitTapOnce (탭칩 전용) ---
+// --- 통합 함수: awaitTapOnce (탭칩 전용 로직) ---
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
@@ -82,15 +83,15 @@ setupStart(vid, hint);
 vid.addEventListener('ended', ()=>{
     tap.style.display = 'block'; 
     
-    // 1. "와인...? 이런 데 왜 있지?"
+    // 1. “와인...? 이런 데 왜 있지?”
     awaitTapOnce(()=>{
         showDialog('와인...? 이런 데 왜 있지?');
         
-        // 2. "태이가 숨겨둔 건가 봐."
+        // 2. “태이가 숨겨둔 건가 봐.”
         awaitTapOnce(()=>{
             showDialog('태이가 숨겨둔 건가 봐.');
             
-            // 3. "이거 마시면 딱 좋겠다."
+            // 3. “이거 마시면 딱 좋겠다.”
             awaitTapOnce(()=>{
                 showDialog('이거 마시면 딱 좋겠다.');
                 
