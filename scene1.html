@@ -3,16 +3,35 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Final Stable - Integrated)</title>
+<title>Scene 1 (Final Stable - Fixed Tap Position)</title>
 <link rel="stylesheet" href="./assets/ui.css"/>
-
 <style>
 .dialog { display: none; } 
 .dialog.show { 
     display: block !important; 
     z-index: 9999; 
 }
-/* 탭칩 위치/크기 관련 CSS는 모두 제거하고 기본 ui.css에 맡깁니다. */
+
+/* 탭칩을 대화창 위로 내림 + 살짝 키움 */
+.tapchip {
+  position: fixed;
+  left: 50%;
+  bottom: 110px; /* 대화창 위쪽 위치 */
+  transform: translateX(-50%);
+  display: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: rgba(20,28,38,.9);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  border: 1px solid rgba(255,255,255,.15);
+  box-shadow: 0 4px 18px rgba(0,0,0,.35);
+  user-select: none;
+  -webkit-user-select: none;
+  transition: bottom 0.2s ease;
+}
+.tapchip:active { transform: translateX(-50%) scale(.96); }
 </style>
 </head>
 <body>
@@ -20,6 +39,7 @@
   <video id="vid" src="./scene1_walk.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div class="hint" id="hint">🎬 START!</div>
   <div class="tapchip" id="tap">탭!</div>
+
   <div class="dialog" id="dialog">
     <div class="row" id="row">
       <img class="avatar" id="avatar" src="./assets/avatar_seongwoo.png" alt="avatar"/>
@@ -32,6 +52,7 @@
   </div>
   <div class="hearts" id="hearts"></div>
 </div>
+
 <script>
 const vid=document.getElementById('vid');
 const hint=document.getElementById('hint');
@@ -41,71 +62,77 @@ const avatar=document.getElementById('avatar');
 const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
-const hearts=document.getElementById('hearts');
 
-// --- 통합 함수: awaitTapOnce (탭칩 전용 로직으로 안정화) ---
-function awaitTapOnce(next){
-  tap.style.display='block'; 
-  const fn=(e)=>{ 
-    tap.removeEventListener('click',fn); 
-    tap.removeEventListener('touchend',fn); 
-    tap.style.display = 'none'; 
-    next(); 
-  };
-  tap.addEventListener('click',fn,{passive:true});
-  tap.addEventListener('touchend',fn,{passive:true});
+/* ---------------- TAP 시스템 ---------------- */
+let tapAction=null;
+let tapGuard=false;
+
+function setTap(next,label='탭!'){
+  tapAction=next;
+  tap.textContent=label;
+  tap.style.display='inline-flex';
 }
+function clearTap(){
+  tapAction=null;
+  tap.style.display='none';
+}
+function handleTap(e){
+  if(e.target!==tap)return;
+  e.preventDefault(); e.stopPropagation();
+  if(tapGuard)return;
+  tapGuard=true; setTimeout(()=>tapGuard=false,200);
+  const fn=tapAction; clearTap();
+  if(typeof fn==='function')fn();
+}
+tap.addEventListener('touchend',handleTap,{passive:false});
+tap.addEventListener('click',handleTap,{passive:false});
+window.addEventListener('click',e=>{
+  if(e.target!==tap)e.stopPropagation();
+},{capture:true});
 
-// --- 통합 함수: setupStart ---
-function setupStart(vid,hint){
-  hint.style.display='block';
+/* ---------------- START 버튼 ---------------- */
+function setupStart(video,hint){
+  hint.style.display='none';
+  video.addEventListener('canplay',()=>{hint.style.display='block';},{once:true});
   const start=()=>{
-    hint.style.display='none'; 
-    vid.muted=true; vid.playsInline=true;
-    vid.play().catch(()=>{ tap.style.display='block'; });
+    hint.style.display='none';
+    video.muted=true; video.playsInline=true;
+    video.play().catch(()=>{ setTap(()=>{video.play();},'탭!'); });
   };
-  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
+  ['click','touchend','pointerdown'].forEach(ev=>{
+    document.addEventListener(ev,start,{once:true,passive:true});
+  });
 }
 
-// --- 통합 함수: showDialog ---
-function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', name='성우') {
-    dialog.classList.add('show');
-    avatar.src = avatarSrc;
-    nameEl.textContent = name;
-    line.textContent = text;
-    btns.innerHTML = '';
-    tap.style.display = 'block';
+/* ---------------- 대화창 표시 ---------------- */
+function showDialog(text, avatarSrc='./assets/avatar_seongwoo.png', who='성우'){
+  dialog.classList.add('show');
+  avatar.src=avatarSrc;
+  nameEl.textContent=who;
+  line.textContent=text;
+  btns.innerHTML='';
 }
 
-// --- 초기 실행 ---
-setupStart(vid, hint);
+/* ---------------- 실행 흐름 ---------------- */
+setupStart(vid,hint);
 
-vid.addEventListener('ended', ()=>{
-    tap.style.display = 'block'; 
-    
-    // 1. “어? 꽃이네.”
-    awaitTapOnce(()=>{
-        showDialog('어? 꽃이네.');
-        
-        // 2. “겨울에 무슨 꽃이 다 피었대.”
-        awaitTapOnce(()=>{
-            showDialog('겨울에 무슨 꽃이 다 피었대.');
-            
-            // 3. “그래도... 예쁘다.”
-            awaitTapOnce(()=>{
-                showDialog('그래도... 예쁘다.');
-                
-                // 4. 버튼 표시
-                tap.style.display = 'none';
-                const home=document.createElement('a');
-                home.href='./index.html';
-                home.className='btn';
-                home.textContent='다음 선물 고르러 가기 🎁';
-                btns.appendChild(home);
-            });
-        });
+vid.addEventListener('ended',()=>{
+  setTap(()=>{
+    showDialog('어? 꽃이네.');
+    setTap(()=>{
+      showDialog('겨울에 무슨 꽃이 다 피었대.');
+      setTap(()=>{
+        showDialog('그래도... 예쁘다.');
+        btns.innerHTML='';
+        const home=document.createElement('a');
+        home.href='./index.html';
+        home.className='btn';
+        home.textContent='다음 선물 고르러 가기 🎁';
+        btns.appendChild(home);
+      });
     });
-}, {once:true});
+  });
+},{once:true});
 </script>
 </body>
 </html>
