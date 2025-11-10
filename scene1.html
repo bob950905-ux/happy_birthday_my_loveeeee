@@ -7,25 +7,13 @@
 <link rel="stylesheet" href="./assets/ui.css"/>
 
 <style>
+/* CSS 충돌 방지: 대화창이 확실히 보이도록 보장 */
 .dialog { display: none; } 
 .dialog.show { 
     display: block !important; 
     z-index: 9999; 
 }
-.tapchip {
-    position: absolute; 
-    right: 30px; 
-    left: auto;
-    bottom: 25vh; 
-    z-index: 10000 !important;
-    padding: 15px 30px;
-    font-size: 1.2em;
-    border-radius: 20px; 
-    border: 2px solid white; 
-    background-color: rgba(0, 0, 0, 0.7); 
-    color: white; 
-    cursor: pointer;
-}
+/* 탭칩 관련 CSS 삭제: ui.css 기본값으로 돌아감 */
 </style>
 </head>
 <body>
@@ -54,9 +42,9 @@ const avatar=document.getElementById('avatar');
 const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
-const hearts=document.getElementById('hearts'); // hearts 변수 추가 (혹시 필요할까 봐)
+const hearts=document.getElementById('hearts');
 
-// --- 통합 함수: awaitTapOnce ---
+// --- 통합 함수: awaitTapOnce (탭칩 전용) ---
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
