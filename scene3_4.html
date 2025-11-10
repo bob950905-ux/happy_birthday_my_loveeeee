@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="./assets/ui.css"/> 
 
 <style>
-/* --- 필수 스타일 (CSS 충돌 방지 및 애니메이션) --- */
 .dialog {
     display: none;
     opacity: 0;
@@ -30,22 +29,7 @@
     position: absolute; 
     pointer-events: none; 
 }
-
-/* 🚨 탭칩 위치/크기 긴급 복구 */
-.tapchip {
-    position: absolute; 
-    right: 30px; 
-    left: auto;
-    bottom: 25vh; /* 대화창 근처로 내림 */
-    z-index: 10000 !important;
-    padding: 15px 30px; /* 터치 영역 확대 */
-    font-size: 1.2em; /* 폰트 크기 확대 */
-    border-radius: 20px; 
-    border: 2px solid white; 
-    background-color: rgba(0, 0, 0, 0.7); 
-    color: white; 
-    cursor: pointer;
-}
+/* 탭칩 위치/크기 CSS 삭제 (기존 위치/크기로 돌아감) */
 </style>
 </head>
 <body>
@@ -79,7 +63,7 @@ const hearts = document.getElementById('hearts');
 
 // --- 유틸리티 함수 ---
 
-/** 🚨 탭칩 전용 탭 함수 */
+/** 🚨 탭칩 전용 탭 함수 (탭칩을 눌러야만 넘어갑니다) */
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
@@ -141,7 +125,7 @@ function startScene3Dialogs(){
         updateDialog('태이', './assets/avatar_taei.png', '바로 나야!!! 💖');
 
         awaitTapOnce(()=>{
-          // 5. 🚨 수정된 대사: "히히 나도 선물이고! 진짜 마지막 선물은.....!"
+          // 5. "히히 나도 선물이고! 진짜 마지막 선물은.....!"
           updateDialog('태이', './assets/avatar_taei.png', '히히 나도 선물이고! 진짜 마지막 선물은.....!');
 
           awaitTapOnce(()=>{
