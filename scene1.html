@@ -3,63 +3,51 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Ultimate Stability Fix)</title>
+<title>Scene 1 (Fixed for real)</title>
 
 <style>
-/* 화면/비디오 기본 */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;background:#000;overflow:hidden;font-family:system-ui,Apple SD Gothic Neo,Segoe UI,Roboto,'Noto Sans KR',sans-serif;}
+body{margin:0;background:#000;overflow:hidden;font-family:sans-serif;}
 video{width:100vw;height:100vh;object-fit:contain;background:#000}
 
-/* 대화창: 반드시 포지션을 줘서 비디오 위에 오게 */
+/* 대화창 */
 .dialog{
-  position:fixed;           /* ★ 핵심: 비디오 위로 띄움 */
-  left:50%;
-  bottom:90px;              /* 탭칩 위로 적당히 */
-  transform:translateX(-50%);
-  width:min(92vw,680px);
-  display:none;
-  z-index:9999 !important;  /* 가장 위 */
-  pointer-events:none;      /* 내부 버튼 영역만 클릭되게 */
+  position:fixed;left:50%;bottom:80px;transform:translateX(-50%);
+  width:min(92vw,680px);display:none;z-index:9999!important;
+  pointer-events:auto; /* 🚨 수정 포인트 */
 }
-.dialog.show{display:block!important}
-
-/* 말풍선 레이아웃(간단 버전) */
-.row{display:flex;gap:12px;align-items:flex-end}
-.avatar{width:56px;height:56px;border-radius:8px;object-fit:cover;filter:contrast(1.1)}
+.dialog.show{display:block!important;}
+.row{display:flex;gap:10px;align-items:flex-end;}
+.avatar{width:56px;height:56px;border-radius:8px;object-fit:cover;}
 .bubble{
-  flex:1;
-  background:rgba(20,28,38,.92);
-  color:#fff;
+  flex:1;background:rgba(20,28,38,.92);color:#fff;
   border:1px solid rgba(255,255,255,.14);
-  border-radius:14px;
-  padding:14px 16px;
-  box-shadow:0 8px 24px rgba(0,0,0,.35);
+  border-radius:14px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.35);
 }
-.name{font-weight:800;opacity:.9;margin-bottom:6px}
-.line{font-size:16px;line-height:1.5}
-.center{display:flex;gap:10px;margin-top:12px;pointer-events:auto}
+.name{font-weight:800;opacity:.9;margin-bottom:6px;}
+.line{font-size:16px;line-height:1.5;}
+.center{display:flex;gap:10px;margin-top:10px;}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;
   padding:12px 16px;border-radius:12px;color:#fff;text-decoration:none;
-  background:#2e5cff;border:1px solid rgba(255,255,255,.18);font-weight:700
+  background:#2e5cff;border:1px solid rgba(255,255,255,.18);font-weight:700;
 }
 
-/* 탭칩: 하단 중앙 고정 */
+/* 탭칩 */
 .tapchip{
   position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-  display:none;padding:14px 20px;border-radius:999px;font-weight:800;
-  background:rgba(20,28,38,.9);color:#fff;border:1px solid rgba(255,255,255,.15);
-  box-shadow:0 4px 18px rgba(0,0,0,.35);z-index:10001;font-size:15px
+  display:none;padding:14px 20px;border-radius:999px;
+  background:rgba(20,28,38,.9);color:#fff;font-weight:800;font-size:16px;
+  border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 18px rgba(0,0,0,.35);
+  z-index:10001;width:auto!important;height:auto!important;line-height:1;
+  white-space:nowrap; /* 🚨 핵심: 길게 늘어나는 문제 해결 */
 }
-.tapchip:active{transform:translateX(-50%) scale(.97)}
+.tapchip:active{transform:translateX(-50%) scale(.96);}
 
-/* START 힌트 */
+/* START */
 .hint{
   position:fixed;left:50%;top:16px;transform:translateX(-50%);
   padding:10px 14px;border-radius:999px;background:rgba(20,28,38,.9);
-  color:#fff;border:1px solid rgba(255,255,255,.15);z-index:10002;font-weight:800
+  color:#fff;border:1px solid rgba(255,255,255,.15);z-index:10002;font-weight:800;
 }
 </style>
 </head>
@@ -83,29 +71,29 @@ video{width:100vw;height:100vh;object-fit:contain;background:#000}
 </div>
 
 <script>
-const vid    = document.getElementById('vid');
-const hint   = document.getElementById('hint');
-const tap    = document.getElementById('tap');
-const dialog = document.getElementById('dialog');
-const avatar = document.getElementById('avatar');
-const nameEl = document.getElementById('name');
-const line   = document.getElementById('line');
-const btns   = document.getElementById('btns');
+const vid=document.getElementById('vid');
+const hint=document.getElementById('hint');
+const tap=document.getElementById('tap');
+const dialog=document.getElementById('dialog');
+const avatar=document.getElementById('avatar');
+const nameEl=document.getElementById('name');
+const line=document.getElementById('line');
+const btns=document.getElementById('btns');
 
-let tapAction=null, tapGuard=false;
+let tapAction=null,tapGuard=false;
 
-/* 탭칩: 눌러야만 진행 (요청대로) */
+/* 탭칩 전용 로직 */
 function setTap(next){ tapAction=next; tap.style.display='inline-flex'; }
 function clearTap(){ tapAction=null; tap.style.display='none'; }
 function triggerTap(){
   if(tapGuard) return;
-  tapGuard=true; setTimeout(()=>tapGuard=false,160);
+  tapGuard=true; setTimeout(()=>tapGuard=false,150);
   const fn=tapAction; clearTap(); if(typeof fn==='function') fn();
 }
-tap.addEventListener('click', triggerTap, {passive:true});
-tap.addEventListener('touchend', (e)=>{ e.preventDefault(); triggerTap(); }, {passive:false});
+tap.addEventListener('click',triggerTap);
+tap.addEventListener('touchend',e=>{e.preventDefault();triggerTap();});
 
-/* START: 누르면 바로 사라지고 재생 시도 */
+/* START 로직 */
 function setupStart(){
   hint.style.display='block';
   const start=()=>{
@@ -117,20 +105,20 @@ function setupStart(){
   ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
-/* 대화창 표시 */
-function showDialog(text, who='성우', avatarSrc='./assets/avatar_seongwoo.png'){
-  dialog.classList.add('show');       // ★ 비디오 위로 보이게
-  avatar.src = avatarSrc;
-  nameEl.textContent = who;
-  line.textContent   = text;
-  btns.innerHTML     = '';
+/* 대화 표시 */
+function showDialog(text,who='성우',avatarSrc='./assets/avatar_seongwoo.png'){
+  dialog.classList.add('show');
+  avatar.src=avatarSrc;
+  nameEl.textContent=who;
+  line.textContent=text;
+  btns.innerHTML='';
 }
 
 /* 초기 실행 */
 setupStart();
 
-/* 비디오 끝 → 대사 진행 */
-vid.addEventListener('ended', ()=>{
+/* 영상 끝나면 대사 진행 */
+vid.addEventListener('ended',()=>{
   showDialog('어? 꽃이네.');
   setTap(()=>{
     showDialog('겨울에 무슨 꽃이 다 피었대.');
@@ -138,10 +126,10 @@ vid.addEventListener('ended', ()=>{
       showDialog('그래도... 예쁘다.');
       setTap(()=>{
         clearTap();
-        const home = document.createElement('a');
-        home.href = './index.html';
-        home.className = 'btn';
-        home.textContent = '다음 선물 고르러 가기 🎁';
+        const home=document.createElement('a');
+        home.href='./index.html';
+        home.className='btn';
+        home.textContent='다음 선물 고르러 가기 🎁';
         btns.appendChild(home);
       });
     });
