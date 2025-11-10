@@ -7,7 +7,6 @@
 <link rel="stylesheet" href="./assets/ui.css"/> 
 
 <style>
-/* 🚨 탭칩 위치/크기 CSS 제거됨. 기본 ui.css에 의존함. */
 .dialog {
     display: none;
     opacity: 0;
@@ -21,7 +20,7 @@
     z-index: 9999 !important; 
 }
 
-/* 💖 하트 애니메이션 (유지) */
+/* 💖 하트 애니메이션 */
 @keyframes fall {
     0% { transform: translateY(-10vh) scale(1); opacity: 1; }
     100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
@@ -30,6 +29,7 @@
     position: absolute; 
     pointer-events: none; 
 }
+/* 탭칩 관련 CSS 삭제 */
 </style>
 </head>
 <body>
@@ -61,7 +61,7 @@ const line = document.getElementById('line');
 const btns = document.getElementById('btns'); 
 const hearts = document.getElementById('hearts');
 
-// --- 통합 함수: awaitTapOnce (탭칩 전용) ---
+// --- 통합 함수: awaitTapOnce (탭칩 전용 로직) ---
 function awaitTapOnce(next){
   tap.style.display='block'; 
   const fn=(e)=>{ 
