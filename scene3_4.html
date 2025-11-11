@@ -3,23 +3,20 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3 + 4 (Responsive Fix)</title>
+<title>Scene 3 + 4 (Final Integrated Version)</title>
 <style>
 :root { color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html,body {
-  margin:0; background:#000; overflow:hidden;
-  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
-}
+html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
 .stage { position:fixed; inset:0; }
 
-/* 🎥 비디오 & 이미지 */
+/* 비디오 및 PNG */
 video, img.bg {
   position:absolute; inset:0; width:100vw; height:100vh;
   object-fit:contain; background:#000; z-index:0!important;
 }
 
-/* 🎬 START 버튼 */
+/* START */
 #hint{
   position:fixed; left:50%; top:14px; transform:translateX(-50%);
   padding:10px 14px; border-radius:999px;
@@ -29,25 +26,26 @@ video, img.bg {
   z-index:10001; user-select:none;
 }
 
-/* ✅ 탭칩 (씬2 기준 + 반응형) */
+/* 탭칩 */
 .tapchip{
   position:fixed!important;
   left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 110px);
   transform:translateX(-50%);
-  display:none; width:auto; height:auto;
-  padding:14px 28px; border-radius:999px;
-  background:rgba(20,28,38,.9); color:#fff; font-weight:800; font-size:1.1rem;
+  display:none;
+  padding:15px 30px; border-radius:999px;
+  background:rgba(20,28,38,.9); color:#fff;
+  font-weight:800; font-size:1.1rem;
   border:1px solid rgba(255,255,255,.15);
   box-shadow:0 4px 18px rgba(0,0,0,.35);
   z-index:2147483647!important;
-  user-select:none; white-space:nowrap;
+  white-space:nowrap;
 }
-.tapchip:active{ transform:translateX(-50%) scale(.96); }
+.tapchip:active{transform:translateX(-50%) scale(.96);}
 
-/* 💬 대화창 */
+/* 대화창 */
 .dialog{
   position:fixed; left:0; right:0;
-  bottom:calc(env(safe-area-inset-bottom,0px) + 18px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
   display:none; z-index:2147483000!important;
   pointer-events:none;
 }
@@ -56,44 +54,26 @@ video, img.bg {
   display:flex; gap:10px; align-items:flex-end;
   padding:0 14px; width:100%; max-width:960px; margin:0 auto;
 }
-.avatar{
-  width:46px; height:46px; border-radius:10px;
-  object-fit:cover; image-rendering:pixelated;
-}
+.avatar{ width:46px; height:46px; border-radius:10px; object-fit:cover; }
 .bubble{
   pointer-events:auto; flex:1; max-width:92vw; max-height:30vh; overflow:auto;
   background:rgba(19,25,36,.92); border:1px solid rgba(255,255,255,.12);
   border-radius:14px; padding:10px 12px; color:#eaf1ff;
   box-shadow:0 6px 22px rgba(0,0,0,.35);
 }
-.name{
-  font-weight:800; opacity:.9; margin-bottom:4px;
-  font-size:clamp(.85rem, 2.5vw, .95rem);
-}
-.line{
-  font-weight:700; line-height:1.5;
-  font-size:clamp(.9rem, 3vw, 1.05rem);
-}
-.center{
-  display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
-}
+.name{ font-weight:800; opacity:.9; margin-bottom:4px; font-size:.9rem; }
+.line{ font-weight:700; font-size:1rem; line-height:1.5; }
+.center{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
 .btn{
   pointer-events:auto;
   display:inline-flex; align-items:center; justify-content:center;
   padding:10px 12px; border-radius:12px; font-weight:800;
-  font-size:clamp(.9rem, 2.8vw, .98rem);
+  font-size:.95rem;
   background:#30435f; color:#fff;
   border:1px solid rgba(255,255,255,.12);
   text-decoration:none; min-width:160px;
 }
 .btn:active{ transform:translateY(1px); }
-
-/* 작은 화면 대응 */
-@media (max-height:740px){
-  .avatar{ width:42px; height:42px; }
-  .bubble{ padding:8px 10px; max-height:26vh; }
-  .tapchip{ bottom:calc(env(safe-area-inset-bottom,0px) + 95px); padding:12px 22px; }
-}
 </style>
 </head>
 <body>
@@ -162,6 +142,7 @@ function heartBurst(){
   setTimeout(()=>hearts.innerHTML='',1600);
 }
 
+/* ===== Scene 3 ===== */
 function runScene3(){
   say('성우','./assets/avatar_seongwoo.png','어? 태이다~~~~~');
   setTap(()=>{
@@ -182,8 +163,10 @@ function runScene3(){
   });
 }
 
+/* ===== Scene 4 ===== */
 let v2=null;
 function playScene4(){
+  const LAST_PNG='./scene4_ticket.png'; // ✅ 영상 끝나면 보여줄 PNG 이름
   v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
   v2.playsInline=true; v2.muted=true; v2.preload='auto';
@@ -195,14 +178,16 @@ function playScene4(){
   let done=false;
   const finish=()=>{
     if(done)return; done=true;
+
     const bg=document.createElement('img');
     bg.className='bg';
-    bg.src=v2.src.replace('.mp4','.png');
+    bg.src=LAST_PNG;
+    bg.onload=()=>{ say('태이','./assets/avatar_taei.png','우리 같이 제주도 가자, 자기야! ✈️'); };
     document.querySelector('.stage').appendChild(bg);
+
     if(v2.parentNode)v2.parentNode.removeChild(v2);
     v2=null;
 
-    say('태이','./assets/avatar_taei.png','우리 같이 제주도 가자, 자기야! ✈️');
     setTap(()=>{
       say('성우','./assets/avatar_seongwoo.png','헐... 완전 감동이야. 내 마음은 이미 출발했는데?');
       setTap(()=>{
@@ -240,6 +225,7 @@ function playScene4(){
       });
     });
   };
+
   v2.addEventListener('ended',finish,{once:true});
   v2.addEventListener('timeupdate',()=>{if(!done&&v2.duration&&v2.currentTime>=v2.duration-0.2)finish();});
 }
