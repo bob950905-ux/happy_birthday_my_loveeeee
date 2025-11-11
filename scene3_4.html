@@ -3,49 +3,96 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 3 + 4 (Unified Tap Position)</title>
+<title>Scene 3 + 4 (Responsive Fix)</title>
 <style>
-body{margin:0;background:#000;overflow:hidden;font-family:sans-serif;}
-video,img.bg{width:100vw;height:100vh;object-fit:contain;background:#000;position:absolute;inset:0;}
+:root { color-scheme: dark; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html,body {
+  margin:0; background:#000; overflow:hidden;
+  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
+.stage { position:fixed; inset:0; }
 
-/* START 버튼 */
-#hint{
-  position:fixed;left:50%;top:18px;transform:translateX(-50%);
-  padding:10px 14px;border-radius:999px;background:rgba(20,28,38,.9);
-  color:#fff;font-weight:800;border:1px solid rgba(255,255,255,.15);
-  box-shadow:0 4px 18px rgba(0,0,0,.35);z-index:10001;
+/* 🎥 비디오 & 이미지 */
+video, img.bg {
+  position:absolute; inset:0; width:100vw; height:100vh;
+  object-fit:contain; background:#000; z-index:0!important;
 }
 
-/* ✅ 탭칩 통일 (씬2 기준) */
+/* 🎬 START 버튼 */
+#hint{
+  position:fixed; left:50%; top:14px; transform:translateX(-50%);
+  padding:10px 14px; border-radius:999px;
+  background:rgba(20,28,38,.92); color:#fff; font-weight:800;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 6px 22px rgba(0,0,0,.35);
+  z-index:10001; user-select:none;
+}
+
+/* ✅ 탭칩 (씬2 기준 + 반응형) */
 .tapchip{
   position:fixed!important;
-  left:50%;bottom:110px;transform:translateX(-50%);
-  display:none;
-  padding:15px 30px;border-radius:999px;background:rgba(20,28,38,.9);
-  color:#fff;font-weight:700;font-size:1.2rem;
-  border:1px solid rgba(255,255,255,.15);box-shadow:0 4px 18px rgba(0,0,0,.35);
-  width:auto!important;height:auto!important;white-space:nowrap;
-  z-index:10060!important; /* 대사창보다 위 */
+  left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 110px);
+  transform:translateX(-50%);
+  display:none; width:auto; height:auto;
+  padding:14px 28px; border-radius:999px;
+  background:rgba(20,28,38,.9); color:#fff; font-weight:800; font-size:1.1rem;
+  border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+  z-index:2147483647!important;
+  user-select:none; white-space:nowrap;
 }
-.tapchip:active{transform:translateX(-50%) scale(.96);}
+.tapchip:active{ transform:translateX(-50%) scale(.96); }
 
-/* 대화창 */
-.dialog{display:none;position:fixed;left:0;right:0;bottom:28px;}
-.dialog.show{display:block!important;z-index:10050!important;}
-.row{display:flex;gap:12px;align-items:flex-end;width:100%;padding:0 18px;}
-.avatar{width:58px;height:58px;border-radius:10px;object-fit:cover;}
-.bubble{
-  flex:1;background:rgba(19,25,36,.92);border:1px solid rgba(255,255,255,.12);
-  border-radius:14px;padding:14px;color:#eaf1ff;
+/* 💬 대화창 */
+.dialog{
+  position:fixed; left:0; right:0;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 18px);
+  display:none; z-index:2147483000!important;
+  pointer-events:none;
 }
-.name{font-size:.92rem;font-weight:800;opacity:.9;margin-bottom:6px;}
-.line{font-size:1.06rem;font-weight:700;line-height:1.55;}
-.center{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.dialog.show{ display:block!important; }
+.row{
+  display:flex; gap:10px; align-items:flex-end;
+  padding:0 14px; width:100%; max-width:960px; margin:0 auto;
+}
+.avatar{
+  width:46px; height:46px; border-radius:10px;
+  object-fit:cover; image-rendering:pixelated;
+}
+.bubble{
+  pointer-events:auto; flex:1; max-width:92vw; max-height:30vh; overflow:auto;
+  background:rgba(19,25,36,.92); border:1px solid rgba(255,255,255,.12);
+  border-radius:14px; padding:10px 12px; color:#eaf1ff;
+  box-shadow:0 6px 22px rgba(0,0,0,.35);
+}
+.name{
+  font-weight:800; opacity:.9; margin-bottom:4px;
+  font-size:clamp(.85rem, 2.5vw, .95rem);
+}
+.line{
+  font-weight:700; line-height:1.5;
+  font-size:clamp(.9rem, 3vw, 1.05rem);
+}
+.center{
+  display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;
+}
 .btn{
-  display:inline-flex;align-items:center;justify-content:center;
-  padding:11px 14px;border-radius:12px;font-weight:800;font-size:.98rem;
-  background:#30435f;color:#fff;border:1px solid rgba(255,255,255,.12);
-  text-decoration:none;min-width:180px;
+  pointer-events:auto;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:10px 12px; border-radius:12px; font-weight:800;
+  font-size:clamp(.9rem, 2.8vw, .98rem);
+  background:#30435f; color:#fff;
+  border:1px solid rgba(255,255,255,.12);
+  text-decoration:none; min-width:160px;
+}
+.btn:active{ transform:translateY(1px); }
+
+/* 작은 화면 대응 */
+@media (max-height:740px){
+  .avatar{ width:42px; height:42px; }
+  .bubble{ padding:8px 10px; max-height:26vh; }
+  .tapchip{ bottom:calc(env(safe-area-inset-bottom,0px) + 95px); padding:12px 22px; }
 }
 </style>
 </head>
@@ -53,8 +100,6 @@ video,img.bg{width:100vw;height:100vh;object-fit:contain;background:#000;positio
 <div class="stage">
   <video id="v1" src="./scene3_taei.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div id="hint">🎬 START!</div>
-  <div id="tap" class="tapchip">탭!</div>
-
   <div id="dialog" class="dialog">
     <div class="row">
       <img id="avatar" class="avatar" src="./assets/avatar_seongwoo.png" alt="">
@@ -65,6 +110,8 @@ video,img.bg{width:100vw;height:100vh;object-fit:contain;background:#000;positio
       </div>
     </div>
   </div>
+  <div id="tap" class="tapchip">탭!</div>
+  <div id="hearts" class="hearts"></div>
 </div>
 
 <script>
@@ -76,85 +123,125 @@ const avatar=document.getElementById('avatar');
 const nameEl=document.getElementById('name');
 const line=document.getElementById('line');
 const btns=document.getElementById('btns');
+const hearts=document.getElementById('hearts');
 
 let tapAction=null,tapGuard=false;
 function setTap(next){tapAction=next;tap.style.display='inline-flex';}
 function clearTap(){tapAction=null;tap.style.display='none';}
-tap.addEventListener('click',()=>{if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,150);const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
-tap.addEventListener('touchend',e=>{e.preventDefault();if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,150);const fn=tapAction;clearTap();if(typeof fn==='function')fn();});
+function fireTap(){if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,160);const fn=tapAction;clearTap();if(typeof fn==='function')fn();}
+tap.addEventListener('click',e=>{if(e.target!==tap)return;e.preventDefault();fireTap();});
+tap.addEventListener('touchend',e=>{e.preventDefault();fireTap();});
 
 function setupStart(){
   hint.style.display='block';
+  v1.muted=true; v1.playsInline=true;
   const start=()=>{
     hint.style.display='none';
-    v1.muted=true;v1.playsInline=true;
-    v1.play().catch(()=>setTap(()=>v1.play()));
-    ['click','touchend','pointerdown'].forEach(ev=>document.removeEventListener(ev,start));
+    v1.play().catch(()=> setTap(()=>v1.play()) );
+    ['pointerdown','touchend','click'].forEach(ev=>document.removeEventListener(ev,start));
   };
-  ['click','touchend','pointerdown'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
+  ['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,start,{once:true,passive:true}));
 }
 
 function say(who,face,text){
   dialog.classList.add('show');
-  avatar.src=face;
-  nameEl.textContent=who;
-  line.textContent=text;
-  btns.innerHTML='';
+  avatar.src=face; nameEl.textContent=who; line.textContent=text; btns.innerHTML='';
 }
 
-/* 씬3 */
+function heartBurst(){
+  hearts.innerHTML='';
+  for(let i=0;i<12;i++){
+    const s=document.createElement('span');
+    s.textContent='❤';
+    s.style.left=(10+Math.random()*80)+'vw';
+    s.style.top='-40px';
+    s.style.position='absolute';
+    s.style.animation='fall 1.5s linear forwards';
+    hearts.appendChild(s);
+  }
+  setTimeout(()=>hearts.innerHTML='',1600);
+}
+
 function runScene3(){
   say('성우','./assets/avatar_seongwoo.png','어? 태이다~~~~~');
   setTap(()=>{
-    say('태이','./assets/avatar_taei.png','성우! 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.');
+    say('태이','./assets/avatar_taei.png','아가, 생일 진심으로 축하해! 🎂 네가 이렇게 행복해하는 거 보니까 나도 너무 좋아.');
     setTap(()=>{
       say('태이','./assets/avatar_taei.png','그리고... 마지막 내 선물은...... 두구두구두구두구두구🥁');
       setTap(()=>{
         say('태이','./assets/avatar_taei.png','바로 나야!!! 💖');
         setTap(()=>{
           say('태이','./assets/avatar_taei.png','히히 나도 선물이고! 진짜 마지막 선물은.....!');
-          setTap(()=>{dialog.classList.remove('show');playScene4();});
+          setTap(()=>{
+            dialog.classList.remove('show');
+            playScene4();
+          });
         });
       });
     });
   });
 }
 
-/* 씬4 */
 let v2=null;
 function playScene4(){
   v2=document.createElement('video');
   v2.src='./scene4_ticket.mp4';
-  v2.playsInline=true;v2.muted=true;v2.preload='auto';
-  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',zIndex:0});
+  v2.playsInline=true; v2.muted=true; v2.preload='auto';
+  Object.assign(v2.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',background:'#000',zIndex:'0'});
   document.querySelector('.stage').appendChild(v2);
   if(v1.parentNode)v1.parentNode.removeChild(v1);
   v2.play().catch(()=>setTap(()=>v2.play()));
 
   let done=false;
   const finish=()=>{
-    if(done)return;done=true;
+    if(done)return; done=true;
     const bg=document.createElement('img');
-    bg.src='./scene4_ticket.png';
-    Object.assign(bg.style,{position:'absolute',inset:'0',width:'100vw',height:'100vh',objectFit:'contain',zIndex:0});
+    bg.className='bg';
+    bg.src=v2.src.replace('.mp4','.png');
     document.querySelector('.stage').appendChild(bg);
     if(v2.parentNode)v2.parentNode.removeChild(v2);
     v2=null;
 
-    say('태이','./assets/avatar_taei.png','우리 같이 제주도 가자, 자기야! ✈️');
+    say('태이','./assets/avatar_taei.png','우리 같이 떠나자, 자기야! ✈️');
     setTap(()=>{
       say('성우','./assets/avatar_seongwoo.png','헐... 완전 감동이야. 내 마음은 이미 출발했는데?');
       setTap(()=>{
         clearTap();
-        const o=document.createElement('a');o.className='btn';o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
-        const x=document.createElement('a');x.className='btn';x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
+        const o=document.createElement('a'); o.className='btn'; o.textContent='고민은 무슨! 당장 태이 손 잡고 떠날래~ 💖';
+        const x=document.createElement('a'); x.className='btn'; x.textContent='잠깐! 너무 갑작스러워... 다음에 갈래요! 😭';
         btns.append(o,x);
-        o.onclick=e=>{e.preventDefault();say('태이','./assets/avatar_taei.png','태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!');setTap(()=>{clearTap();const home=document.createElement('a');home.href='./index.html';home.className='btn';home.textContent='메인 화면으로 돌아가기';btns.appendChild(home);});};
-        x.onclick=e=>{e.preventDefault();say('태이','./assets/avatar_taei.png','너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!');setTap(()=>{clearTap();const home=document.createElement('a');home.href='./index.html';home.className='btn';home.textContent='메인 화면으로 돌아가기';btns.appendChild(home);});};
+
+        o.addEventListener('click',e=>{
+          e.preventDefault();
+          say('태이','./assets/avatar_taei.png','태이한테 뽀뽀~💋 완벽한 선택! 우리 가서 맛있는 거 잔뜩 먹고 오자~!');
+          heartBurst();
+          setTap(()=>{
+            clearTap();
+            const home=document.createElement('a');
+            home.href='./index.html';
+            home.className='btn';
+            home.textContent='메인 화면으로 돌아가기';
+            btns.appendChild(home);
+          });
+        },{once:true});
+
+        x.addEventListener('click',e=>{
+          e.preventDefault();
+          say('태이','./assets/avatar_taei.png','너무 슬포요 흑흑 🥺 다음엔 꼭 같이 가자~ 약속이야!');
+          setTap(()=>{
+            clearTap();
+            const home=document.createElement('a');
+            home.href='./index.html';
+            home.className='btn';
+            home.textContent='메인 화면으로 돌아가기';
+            btns.appendChild(home);
+          });
+        },{once:true});
       });
     });
   };
   v2.addEventListener('ended',finish,{once:true});
+  v2.addEventListener('timeupdate',()=>{if(!done&&v2.duration&&v2.currentTime>=v2.duration-0.2)finish();});
 }
 
 setupStart();
