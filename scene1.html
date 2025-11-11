@@ -3,20 +3,27 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>Scene 1 (Tap Always Above Dialog)</title>
+<title>Scene 1 (Tap Above Dialog + Smaller Avatar)</title>
 <style>
 :root { color-scheme: dark; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
+html,body {
+  margin:0;
+  background:#000;
+  overflow:hidden;
+  font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
+}
 .stage { position:fixed; inset:0; }
 
-/* 비디오는 항상 맨뒤 */
+/* 🎥 비디오 맨 뒤 */
 video {
-  position:absolute; inset:0; width:100vw; height:100vh;
-  object-fit:contain; background:#000; z-index:0 !important;
+  position:absolute; inset:0;
+  width:100vw; height:100vh;
+  object-fit:contain; background:#000;
+  z-index:0 !important;
 }
 
-/* START */
+/* 🎬 START 버튼 */
 #hint{
   position:fixed; left:50%; top:18px; transform:translateX(-50%);
   padding:10px 14px; border-radius:999px;
@@ -26,47 +33,79 @@ video {
   z-index:10001;
 }
 
-/* 대화창: 위에 뜨되, 빈 영역은 클릭 통과 */
+/* 💬 대화창 */
 .dialog{
-  position:fixed; left:0; right:0; bottom:28px;
+  position:fixed; left:0; right:0;
+  bottom:28px;
   display:none;
-  z-index:2147483000 !important;  /* 매우 높게 */
-  pointer-events:none;            /* 빈 영역은 통과 */
+  z-index:2147483000 !important;
+  pointer-events:none;
 }
 .dialog.show{ display:block !important; }
-.row{ display:flex; align-items:flex-end; gap:12px; padding:0 18px; }
-.avatar{ width:58px; height:58px; border-radius:10px; object-fit:cover; }
+
+.row{
+  display:flex; align-items:flex-end; gap:12px; padding:0 18px;
+}
+
+/* ✅ 아바타 크기 축소 + 반응형 */
+.avatar{
+  width:clamp(38px, 10vw, 46px);
+  height:clamp(38px, 10vw, 46px);
+  border-radius:10px;
+  object-fit:cover;
+  image-rendering:pixelated;
+}
+
+/* 말풍선 */
 .bubble{
-  flex:1; background:rgba(19,25,36,.92);
+  flex:1;
+  background:rgba(19,25,36,.92);
   border:1px solid rgba(255,255,255,.12);
-  border-radius:14px; padding:14px; color:#eaf1ff; box-shadow:0 6px 22px rgba(0,0,0,.35);
-  pointer-events:auto;           /* 말풍선 내부만 클릭 가능 */
+  border-radius:14px;
+  padding:14px;
+  color:#eaf1ff;
+  box-shadow:0 6px 22px rgba(0,0,0,.35);
+  pointer-events:auto;
 }
 .name{ font-weight:800; margin-bottom:6px; }
 .line{ font-weight:700; font-size:1.05rem; line-height:1.55; }
 .center{ margin-top:12px; }
 .btn{
   display:inline-flex; align-items:center; justify-content:center;
-  padding:11px 14px; border-radius:12px; font-weight:800; font-size:.98rem;
-  background:#30435f; color:#fff; border:1px solid rgba(255,255,255,.12);
+  padding:11px 14px; border-radius:12px;
+  font-weight:800; font-size:.98rem;
+  background:#30435f; color:#fff;
+  border:1px solid rgba(255,255,255,.12);
   text-decoration:none; min-width:180px;
-  pointer-events:auto;           /* 버튼은 당연히 클릭 */
+  pointer-events:auto;
 }
 .btn:active{ transform:translateY(1px); }
 
-/* ✅ 탭칩: 무조건 최상위 + 대사창 앞 */
+/* ✅ 탭칩: 무조건 최상단 */
 .tapchip{
   position:fixed !important;
-  left:50%; bottom:110px; transform:translateX(-50%);
+  left:50%;
+  bottom:calc(env(safe-area-inset-bottom,0px) + 110px);
+  transform:translateX(-50%);
   display:none;
-  padding:15px 30px; border-radius:999px;
-  background:rgba(20,28,38,.9); color:#fff; font-weight:800; font-size:1.2rem;
+  padding:15px 30px;
+  border-radius:999px;
+  background:rgba(20,28,38,.9);
+  color:#fff;
+  font-weight:800; font-size:1.2rem;
   border:1px solid rgba(255,255,255,.15);
   box-shadow:0 4px 18px rgba(0,0,0,.35);
-  width:auto !important; height:auto !important; white-space:nowrap;
-  z-index:2147483647 !important; /* ← 최상단 고정 */
+  width:auto !important; height:auto !important;
+  white-space:nowrap;
+  z-index:2147483647 !important;
 }
 .tapchip:active{ transform:translateX(-50%) scale(.96); }
+
+/* 작은 화면 대응 */
+@media (max-height:740px){
+  .bubble{ padding:10px 12px; }
+  .tapchip{ bottom:calc(env(safe-area-inset-bottom,0px) + 95px); padding:12px 24px; }
+}
 </style>
 </head>
 <body>
@@ -74,7 +113,7 @@ video {
   <video id="vid" src="./scene1_walk.mp4" preload="auto" playsinline webkit-playsinline muted></video>
   <div id="hint">🎬 START!</div>
 
-  <!-- dialog를 먼저 두고, tap을 뒤에 둔다 (사파리 페인팅 케이스 방지) -->
+  <!-- 대화창 -->
   <div id="dialog" class="dialog">
     <div class="row">
       <img id="avatar" class="avatar" src="./assets/avatar_seongwoo.png" alt="avatar">
@@ -86,7 +125,7 @@ video {
     </div>
   </div>
 
-  <!-- ✅ 탭칩은 DOM에서도 dialog 뒤에 위치 -->
+  <!-- ✅ 탭칩 -->
   <div id="tap" class="tapchip">탭!</div>
 </div>
 
@@ -103,7 +142,11 @@ const btns=document.getElementById('btns');
 let tapAction=null,tapGuard=false;
 function setTap(next){tapAction=next;tap.style.display='inline-flex';}
 function clearTap(){tapAction=null;tap.style.display='none';}
-function fireTap(){if(tapGuard)return;tapGuard=true;setTimeout(()=>tapGuard=false,150);const fn=tapAction;clearTap();if(typeof fn==='function')fn();}
+function fireTap(){
+  if(tapGuard)return;
+  tapGuard=true;setTimeout(()=>tapGuard=false,150);
+  const fn=tapAction;clearTap();if(typeof fn==='function')fn();
+}
 tap.addEventListener('click',fireTap);
 tap.addEventListener('touchend',e=>{e.preventDefault();fireTap();});
 
