@@ -1,1 +1,235 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/><title>HAPPY B DAY MY LOVEEE</title><link rel="stylesheet" href="./assets/ui.css"/></head><body><div class="container"><div class="index-card"><h1 class="index-title">HAPPY B DAY MY LOVEEE</h1><a class="index-btn pink" href="./scene1.html">💗열어봐💗</a><a class="index-btn blue" href="./scene2.html">💙하나더💙</a><a class="index-btn yellow" href="./scene3_4.html">💛마지막💛</a></div></div></body></html>
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>🎁 리본 풀기 — 시간차 선물</title>
+<style>
+:root { color-scheme: dark; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html,body { margin:0; background:#000; font-family: system-ui,-apple-system,"Noto Sans KR",sans-serif; }
+.stage { position:fixed; inset:0; overflow:hidden; }
+
+/* 비디오는 맨 뒤 */
+video {
+  position:absolute; inset:0; width:100vw; height:100vh;
+  object-fit:contain; background:#000; z-index:0 !important;
+}
+
+/* 블랙 오버레이 (영상 끝나면 페이드인) */
+#black {
+  position:absolute; inset:0; background:#000;
+  opacity:0; pointer-events:none; z-index:5;
+  transition: opacity .6s ease;
+}
+
+/* 상단 힌트 */
+#hint {
+  position:fixed; left:50%; top:16px; transform:translateX(-50%);
+  padding:10px 14px; border-radius:999px; background:rgba(20,28,38,.92);
+  color:#fff; font-weight:800; border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 6px 22px rgba(0,0,0,.35); z-index:10; user-select:none;
+}
+
+/* 중앙 리본 버튼 */
+#ribbon {
+  position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+  display:inline-flex; align-items:center; gap:10px;
+  padding:14px 20px; border-radius:16px; background:#1f2a3a;
+  color:#fff; border:1px solid rgba(255,255,255,.18); font-weight:900;
+  box-shadow:0 8px 26px rgba(0,0,0,.4); z-index:12;
+}
+#ribbon:active { transform:translate(-50%,-50%) scale(.98); }
+
+/* 버튼 덱 (하단) */
+#deck {
+  position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
+  display:none; justify-content:center; gap:10px; flex-wrap:wrap; padding:0 14px; z-index:20;
+}
+.btn {
+  min-width:160px;
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:12px 14px; border-radius:12px; font-weight:800;
+  background:#30435f; color:#fff; border:1px solid rgba(255,255,255,.12);
+  text-decoration:none; opacity:0; transform:translateY(8px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.btn.show { opacity:1; transform:translateY(0); }
+.btn:active { transform:translateY(1px); }
+.btn[disabled] { opacity:.45 !important; filter:grayscale(.3); pointer-events:none; }
+.lock { font-size:.9rem; opacity:.9; margin-left:8px; }
+
+/* 작은 화면 대응 */
+@media (max-height:740px){
+  .btn{ padding:10px 12px; min-width:148px; }
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- 선물박스 여는 영상 (검정 배경) -->
+  <video id="gift" src="gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+
+  <!-- 블랙 오버레이: 영상 끝나면 페이드인해서 확실히 검정 배경으로 -->
+  <div id="black"></div>
+
+  <!-- 상단 힌트 & 리본 -->
+  <div id="hint">🎬 탭해서 시작</div>
+  <button id="ribbon">🎀 리본 풀기</button>
+
+  <!-- 하단 버튼 3개 -->
+  <div id="deck">
+    <a id="b1" class="btn" href="./scene1.html">💗 첫 번째 선물</a>
+    <a id="b2" class="btn" href="./scene2.html" disabled>💙 두 번째 선물 <span class="lock" id="t2">⏳</span></a>
+    <a id="b3" class="btn" href="./scene3_4.html" disabled>💛 마지막 선물 <span class="lock" id="t3">⏳</span></a>
+  </div>
+</div>
+
+<script>
+/* ===== 설정: 시간 간격(시간 단위) ===== */
+const HOURS_2 = 2;  // 두 번째 버튼: 2시간 뒤 오픈
+const HOURS_5 = 5;  // 세 번째 버튼: 5시간 뒤 오픈
+
+/* ===== 요소 ===== */
+const video  = document.getElementById('gift');
+const black  = document.getElementById('black');
+const hint   = document.getElementById('hint');
+const ribbon = document.getElementById('ribbon');
+const deck   = document.getElementById('deck');
+const b1     = document.getElementById('b1');
+const b2     = document.getElementById('b2');
+const b3     = document.getElementById('b3');
+const t2     = document.getElementById('t2');
+const t3     = document.getElementById('t3');
+
+const LS_KEY = 'giftOpenedAt_v1';
+
+/* ===== 남은 시간 포맷 ===== */
+function fmt(ms){
+  if(ms <= 0) return '열 수 있어요!';
+  const s = Math.ceil(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  if(h>0) return `${h}시간 ${m}분`;
+  if(m>0) return `${m}분`;
+  return `${s}초`;
+}
+
+/* ===== 버튼 상태 갱신 ===== */
+let openedAt = null;
+let ticker = null;
+
+function showDeckStaggered(){
+  deck.style.display = 'flex';
+  // 툭·툭·툭 등장
+  requestAnimationFrame(()=>{
+    setTimeout(()=> b1.classList.add('show'), 0);
+    setTimeout(()=> b2.classList.add('show'), 180);
+    setTimeout(()=> b3.classList.add('show'), 360);
+  });
+}
+
+function updateLocks(){
+  if(!openedAt) return;
+  const now = Date.now();
+  const base = Number(openedAt);
+  const after2 = base + HOURS_2*60*60*1000;
+  const after5 = base + HOURS_5*60*60*1000;
+
+  // 1번은 즉시
+  b1.removeAttribute('disabled');
+
+  // 2번
+  const left2 = after2 - now;
+  if(left2 <= 0){
+    b2.removeAttribute('disabled');
+    if(t2) t2.textContent = '✨ 열렸어요';
+  }else{
+    b2.setAttribute('disabled','');
+    if(t2) t2.textContent = '⏳ ' + fmt(left2);
+  }
+
+  // 3번
+  const left5 = after5 - now;
+  if(left5 <= 0){
+    b3.removeAttribute('disabled');
+    if(t3) t3.textContent = '✨ 열렸어요';
+  }else{
+    b3.setAttribute('disabled','');
+    if(t3) t3.textContent = '⏳ ' + fmt(left5);
+  }
+}
+
+/* ===== 첫 방문이 아닌 경우(이미 열어본 적 있음): 바로 블랙+버튼 ===== */
+function coldStart(){
+  const saved = localStorage.getItem(LS_KEY);
+  if(saved){
+    openedAt = Number(saved);
+    // 영상 숨기고 블랙 켜기
+    try { video.pause(); } catch(e){}
+    video.style.display = 'none';
+    black.style.opacity = 1; // 이미 검정으로
+    hint.style.display = 'none';
+    ribbon.style.display = 'none';
+    showDeckStaggered();
+    updateLocks();
+    ticker = setInterval(updateLocks, 1000);
+    return true;
+  }
+  return false;
+}
+
+/* ===== 리본 풀기 → 영상 재생 → 끝나면 블랙 페이드 + 버튼 ===== */
+function setupPlay(){
+  ribbon.addEventListener('click', async ()=>{
+    hint.style.display = 'none';
+    ribbon.style.display = 'none';
+
+    // iOS/Safari 대비
+    video.muted = true;
+    video.playsInline = true;
+
+    try { await video.play(); }
+    catch(e){
+      // 자동재생 실패 시 한 번 더 탭 유도
+      hint.textContent = '▶︎ 탭해서 재생';
+      hint.style.display = 'block';
+      const once = ()=>{ hint.style.display='none'; video.play().catch(()=>{}); video.removeEventListener('click', once); };
+      video.addEventListener('click', once, {once:true});
+    }
+  }, {passive:true});
+
+  const finish = ()=>{
+    if(!openedAt){
+      openedAt = Date.now();
+      localStorage.setItem(LS_KEY, String(openedAt));
+    }
+    // 확실한 블랙 전환
+    black.style.opacity = 1;
+    // 잠깐의 페이드 후 버튼 노출
+    setTimeout(()=>{
+      showDeckStaggered();
+      updateLocks();
+      ticker = setInterval(updateLocks, 1000);
+      // 비디오는 안 보이게
+      video.style.display = 'none';
+    }, 200);
+  };
+
+  video.addEventListener('ended', finish, {once:true});
+  video.addEventListener('timeupdate', ()=>{
+    if(video.duration && video.currentTime >= video.duration - 0.2){
+      video.dispatchEvent(new Event('ended'));
+    }
+  });
+}
+
+/* ===== 시작 ===== */
+if(!coldStart()){
+  hint.style.display = 'block';
+  ribbon.style.display = 'inline-flex';
+  setupPlay();
+}
+</script>
+</body>
+</html>
