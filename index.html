@@ -10,23 +10,21 @@
   html,body { margin:0; background:#000; color:#fff; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; overflow:hidden; }
   .stage { position:fixed; inset:0; }
 
-  /* 🎥 영상은 꽉 차게, 뒤 레이어 */
   video {
     position:absolute; inset:0; width:100vw; height:100vh;
     object-fit:contain; background:#000; z-index:0;
   }
 
-  /* 🎀 리본 풀기 (처음 중앙) */
   .start {
     position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    padding:14px 22px; border-radius:999px; font-weight:900; letter-spacing:.3px;
+    padding:14px 22px; border-radius:999px; font-weight:900;
     background:linear-gradient(45deg,#ffd6f0,#ff8ac6); color:#15192a;
-    border:1px solid rgba(255,255,255,.18); box-shadow:0 10px 28px rgba(0,0,0,.45);
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 10px 28px rgba(0,0,0,.45);
     z-index:10; user-select:none;
   }
   .start:active { transform:translate(-50%,-50%) scale(.98); }
 
-  /* ⬇️ “탭!” 유도칩 (오토플레이 실패 시) */
   .tapchip{
     position:fixed; left:50%;
     bottom:calc(env(safe-area-inset-bottom,0px) + 120px);
@@ -36,36 +34,33 @@
     border:1px solid rgba(255,255,255,.15); box-shadow:0 6px 22px rgba(0,0,0,.35);
     z-index:12;
   }
-  .tapchip:active{ transform:translateX(-50%) scale(.98); }
 
-  /* 💖 하트 버튼 바: 하단보다 살짝 위 (가려지지 않게) */
   .heart-bar{
     position:fixed; left:0; right:0;
     bottom:calc(env(safe-area-inset-bottom,0px) + 135px);
     display:flex; gap:14px; justify-content:center;
     padding:0 16px; z-index:11;
-    pointer-events:none; /* 버튼만 클릭되도록 */
+    pointer-events:none;
   }
 
   .heart{
     pointer-events:auto;
     position:relative;
     min-width:120px; padding:12px 16px;
-    border-radius:999px; font-weight:900; letter-spacing:.3px;
-    color:#0c1020; text-decoration:none;
-    border:1px solid rgba(255,255,255,.14); box-shadow:0 10px 26px rgba(0,0,0,.42);
+    border-radius:999px; font-weight:900;
+    color:#0c1020;
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 10px 26px rgba(0,0,0,.42);
     opacity:0; transform:translateY(18px) scale(.96);
-    transition:opacity .6s cubic-bezier(.16,.84,.44,1), transform .6s cubic-bezier(.16,.84,.44,1), filter .2s ease;
+    transition:opacity .6s cubic-bezier(.16,.84,.44,1), transform .6s cubic-bezier(.16,.84,.44,1);
   }
   .heart.show { opacity:1; transform:translateY(0) scale(1); }
   .heart:active { transform:translateY(0) scale(.98); }
 
-  /* 색상: 핑크 / 오렌지 / 블루 */
   .pink   { background:linear-gradient(45deg,#ff90c2,#ff68b5); }
   .orange { background:linear-gradient(45deg,#ffc076,#ff8a33); }
   .blue   { background:linear-gradient(45deg,#7cc8ff,#3fa6ff); }
 
-  /* 잠금 상태 */
   .heart.locked { filter:grayscale(1); opacity:.55; pointer-events:none; }
   .locknote{
     position:absolute; left:50%; bottom:-26px; transform:translateX(-50%);
@@ -73,11 +68,6 @@
     white-space:nowrap; user-select:none;
   }
 
-  /* 둥실둥실 미세 모션(옵션) */
-  .floaty{ animation:floaty 2.2s ease-in-out .2s infinite; }
-  @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-
-  /* 작은 화면 보정 */
   @media (max-height:740px){
     .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 118px); gap:10px; }
     .heart{ min-width:110px; padding:10px 14px; }
@@ -86,142 +76,119 @@
 </head>
 <body>
 <div class="stage">
-  <!-- 선물상자 영상 (처음엔 숨김) -->
   <video id="giftVideo" src="assets/gift_box.mp4" preload="auto" playsinline webkit-playsinline muted style="display:none;"></video>
 
-  <!-- 중앙 스타트 -->
   <button id="startBtn" class="start">🎀 리본 풀기</button>
   <button id="tap" class="tapchip">탭!</button>
 
-  <!-- 하트 버튼 바 -->
-  <nav class="heart-bar" id="heartBar" aria-label="선물 선택" style="display:none;">
-    <a class="heart pink"   id="h1" href="./scene1.html"   aria-label="첫 번째 선물">💖</a>
-    <a class="heart orange" id="h2" href="./scene2.html"   aria-label="두 번째 선물">🧡🧡</a>
-    <a class="heart blue"   id="h3" href="./scene3_4.html" aria-label="세 번째 선물">💙💙💙</a>
+  <nav class="heart-bar" id="heartBar" style="display:none;">
+    <a class="heart pink"   id="h1" href="./scene1.html">💖</a>
+    <a class="heart orange" id="h2" href="./scene2.html">🧡🧡</a>
+    <a class="heart blue"   id="h3" href="./scene3_4.html">💙💙💙</a>
   </nav>
 </div>
 
 <script>
-/* ===== 설정값 ===== */
-/* 선물상자 영상 경로 */
+/* ===== 설정 ===== */
 const VIDEO_SRC = 'assets/gift_box.mp4';
+const STAGGER_MS = 5000;        // 하트 등장 간격 (5초)
+const UNLOCK_OFFSETS = [0, 3600, 7200]; // 테스트: [0,10,20]
+const BASE_KEY = 'gift_unlock_plan';
 
-/* 하트 등장 간격(ms): 0초 / 5초 / 10초에 “툭툭툭” */
-const STAGGER_MS = 5000;
+/* ===== 초기화 ===== */
+if (new URLSearchParams(location.search).get('reset') === '1'){
+  localStorage.removeItem(BASE_KEY);
+}
 
-/* 하트 잠금 해제(초): 즉시 / 1시간 / 2시간  (테스트용: [0,10,20]) */
-const UNLOCK_OFFSETS = [0, 60, 100];
+const startBtn=document.getElementById('startBtn');
+const tapChip=document.getElementById('tap');
+const videoEl=document.getElementById('giftVideo');
+const heartBar=document.getElementById('heartBar');
+const hearts=[...document.querySelectorAll('.heart')];
 
-/* 기준 시간 키(localStorage) – 최초 방문 시점 고정 */
-const BASELINE_KEY = 'giftBaselineAt';
-
-/* ===== 엘리먼트 ===== */
-const startBtn = document.getElementById('startBtn');
-const tapChip  = document.getElementById('tap');
-const videoEl  = document.getElementById('giftVideo');
-const heartBar = document.getElementById('heartBar');
-const h1 = document.getElementById('h1');
-const h2 = document.getElementById('h2');
-const h3 = document.getElementById('h3');
-
-/* ===== 유틸: 남은시간 포맷 ===== */
+/* ===== 유틸 ===== */
 function fmtRemain(ms){
-  if (ms <= 0) return '열 수 있어요!';
-  const sec = Math.ceil(ms/1000);
-  const hr  = Math.floor(sec/3600);
-  const min = Math.floor((sec%3600)/60);
-  if (hr > 0 && min > 0) return `⏰ ${hr}시간 ${min}분 뒤에 열려요`;
-  if (hr > 0) return `⏰ ${hr}시간 뒤에 열려요`;
-  return `⏰ ${min}분 뒤에 열려요`;
+  if (ms<=0) return '열 수 있어요!';
+  const s=Math.ceil(ms/1000);
+  const h=Math.floor(s/3600);
+  const m=Math.floor((s%3600)/60);
+  const sec=s%60;
+  if(h>0)return`⏰ ${h}시간 ${m}분 뒤에 열려요`;
+  if(m>0)return`⏰ ${m}분 ${sec}초 뒤에 열려요`;
+  return`⏰ ${sec}초 뒤에 열려요`;
 }
 
-/* ===== 기준 시간(최초 방문 시각) 확보 ===== */
-function getBaseline(){
-  let t = localStorage.getItem(BASELINE_KEY);
-  if (!t){
-    t = Date.now().toString();
-    localStorage.setItem(BASELINE_KEY, t);
+function ensurePlan(){
+  let arr=JSON.parse(localStorage.getItem(BASE_KEY)||'null');
+  if(!Array.isArray(arr)){
+    const now=Date.now();
+    arr=UNLOCK_OFFSETS.map(sec=>now+sec*1000);
+    localStorage.setItem(BASE_KEY,JSON.stringify(arr));
   }
-  return parseInt(t,10);
+  return arr;
 }
 
-/* ===== 하트 잠금/타이머 UI 적용 ===== */
-function applyLocks(anchors){
-  const baseline = getBaseline(); // ms
-  anchors.forEach((a, idx)=>{
-    const unlockAt = baseline + UNLOCK_OFFSETS[idx]*1000;
-    const note = document.createElement('div');
-    note.className = 'locknote';
-    a.appendChild(note);
+/* ===== 잠금 표시 ===== */
+function setupLocks(){
+  const plan=ensurePlan();
+  hearts.forEach((btn,i)=>{
+    const note=document.createElement('div');
+    note.className='locknote';
+    btn.appendChild(note);
+  });
 
-    function update(){
-      const remain = unlockAt - Date.now();
-      if (remain <= 0){
-        a.classList.remove('locked');
-        note.textContent = '열 수 있어요!';
+  function tick(){
+    const now=Date.now();
+    plan.forEach((t,i)=>{
+      const btn=hearts[i];
+      const note=btn.querySelector('.locknote');
+      const remain=t-now;
+      if(remain<=0){
+        btn.classList.remove('locked');
+        note.textContent='';
       }else{
-        a.classList.add('locked');
-        note.textContent = fmtRemain(remain);
+        btn.classList.add('locked');
+        note.textContent=fmtRemain(remain);
       }
-    }
-    update();
-    setInterval(update, 10000); // 10초마다 갱신
-  });
+    });
+    requestAnimationFrame(tick);
+  }
+  tick();
 }
 
-/* ===== 하트 바 표시(영상 끝난 뒤) ===== */
+/* ===== 영상 끝나면 하트 표시 ===== */
 function revealHearts(){
-  heartBar.style.display = 'flex';
-
-  // 잠금 로직 세팅
-  applyLocks([h1,h2,h3]);
-
-  // 스태거 등장
-  [h1,h2,h3].forEach((el, i)=>{
-    setTimeout(()=>{
-      el.classList.add('show','floaty');
-    }, i*STAGGER_MS);
+  heartBar.style.display='flex';
+  setupLocks();
+  hearts.forEach((h,i)=>{
+    setTimeout(()=>h.classList.add('show'),i*STAGGER_MS);
   });
 }
 
-/* ===== 시작: 리본풀기 → 영상 재생 → 영상 끝 → 하트 노출 ===== */
-startBtn.addEventListener('click', async ()=>{
-  // 중앙 버튼 숨기고, 비디오 보여주기
-  startBtn.style.display = 'none';
-  videoEl.style.display  = 'block';
-  videoEl.src = VIDEO_SRC;
-  videoEl.muted = true;
-  videoEl.playsInline = true;
-
-  try{
-    await videoEl.play();
-  }catch(err){
-    // 자동재생 막히면 탭칩으로 유도
-    tapChip.style.display = 'block';
-    const resume = async ()=>{
-      tapChip.style.display = 'none';
-      try{ await videoEl.play(); }catch(e){}
-      tapChip.removeEventListener('click', resume);
-      tapChip.removeEventListener('touchend', resume);
+/* ===== 시작버튼 클릭 ===== */
+startBtn.addEventListener('click',async()=>{
+  startBtn.style.display='none';
+  videoEl.style.display='block';
+  videoEl.src=VIDEO_SRC;
+  try{await videoEl.play();}
+  catch(e){
+    tapChip.style.display='block';
+    const play=async()=>{
+      tapChip.style.display='none';
+      await videoEl.play().catch(()=>{});
     };
-    tapChip.addEventListener('click', resume, {once:true});
-    tapChip.addEventListener('touchend', resume, {once:true});
+    tapChip.addEventListener('click',play,{once:true});
+    tapChip.addEventListener('touchend',play,{once:true});
   }
 });
 
-/* 영상 끝났을 때만 하트 노출 */
-videoEl.addEventListener('ended', ()=>{
-  revealHearts();
-});
-
-/* 혹시 영상이 짧아 끝 이벤트가 스킵될 상황 대비(막프 근접 감지) */
-videoEl.addEventListener('timeupdate', ()=>{
-  if (videoEl.duration && videoEl.currentTime >= videoEl.duration - 0.2){
-    // 한 번만 실행되도록 이벤트 제거
+videoEl.addEventListener('ended',()=>revealHearts());
+videoEl.addEventListener('timeupdate',()=>{
+  if(videoEl.duration&&videoEl.currentTime>=videoEl.duration-0.2){
     videoEl.dispatchEvent(new Event('ended'));
-    videoEl.src = ''; // 중복 방지
   }
 });
 </script>
 </body>
 </html>
+
