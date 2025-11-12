@@ -10,7 +10,7 @@
   html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
   .stage { position:fixed; inset:0; }
 
-  /* 배경 영상/이미지 (항상 맨 뒤) */
+  /* 배경: 비디오/이미지(항상 맨 뒤) */
   video, img.bg {
     position:absolute; inset:0; width:100vw; height:100vh;
     object-fit:contain; background:#000; z-index:0;
@@ -25,20 +25,17 @@
     border:1px solid rgba(255,255,255,.22);
     box-shadow:0 10px 28px rgba(0,0,0,.45), inset 0 0 22px rgba(255,255,255,.25);
     z-index:5; user-select:none;
-    animation:bob 1.6s ease-in-out infinite;
+    animation:hintBob 1.6s ease-in-out infinite;
   }
   #hint:active{ transform:translate(-50%,-50%) scale(.98); }
-  @keyframes bob{
-    0%,100%{ transform:translate(-50%,-50%) translateY(0); }
-    50%    { transform:translate(-50%,-50%) translateY(-6px); }
-  }
+  @keyframes hintBob{ 0%,100%{ transform:translate(-50%,-50%) translateY(0) } 50%{ transform:translate(-50%,-50%) translateY(-6px) } }
 
-  /* 하트 버튼 바 (하단보다 ‘조금 위’) */
+  /* 하트 버튼 바 (하단보다 조금 위) */
   .heart-bar{
     position:fixed; left:0; right:0;
     bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
     display:flex; gap:12px; justify-content:center; align-items:flex-end;
-    padding:0 16px; z-index:10; pointer-events:none; /* 애니 전 오터치 방지 */
+    padding:0 16px; z-index:10; pointer-events:none; /* 초기 애니 중 오터치 방지 */
   }
 
   /* 버튼 기본 */
@@ -50,9 +47,11 @@
     color:#0c1020; text-decoration:none; user-select:none;
     border:1px solid rgba(255,255,255,.14);
     box-shadow:0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15);
-    transform:translateY(20px); opacity:0; filter:saturate(1.08);
-    transition:transform .6s ease-out, opacity .6s ease-out, box-shadow .2s ease;
+    transform:translateY(24px); opacity:0; filter:saturate(1.08);
+    transition:box-shadow .2s ease;
     pointer-events:auto;
+    /* 등장 후 둥실둥실 */
+    animation-fill-mode:forwards;
   }
   .btn-heart:active{ transform:translateY(0) scale(.98); }
 
@@ -61,15 +60,17 @@
   .orange{ background:linear-gradient(45deg,#ffc076,#ff8a33); }
   .blue  { background:linear-gradient(45deg,#7cc8ff,#3fa6ff); }
 
-  /* 등장 애니메이션 */
-  .show { opacity:1; transform:translateY(0); }
+  /* 등장(위로 슥 올라옴) + 지속 보브 */
+  @keyframes riseIn   { from{opacity:0; transform:translateY(24px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes softBob  { 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-3px) } }
+  .show{
+    animation:
+      riseIn .7s ease-out forwards,
+      softBob 3s ease-in-out .9s infinite;
+  }
 
   /* 잠금 상태 */
-  .locked{
-    filter:grayscale(.15) brightness(.9);
-    opacity:.65;
-    cursor:not-allowed;
-  }
+  .locked{ filter:grayscale(.15) brightness(.9); opacity:.65; cursor:not-allowed; }
   .locked .lock{
     position:absolute; inset:auto 10px 100%;
     display:inline-flex; gap:6px; align-items:center;
@@ -89,9 +90,12 @@
 </head>
 <body>
   <div class="stage">
-    <!-- 영상 파일: gift_open.mp4 (같은 폴더) -->
-    <video id="vid" src="./gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
-    <!-- 재방문 시 사용할 선택적 스틸 이미지 파일명(있으면 자동 사용됨): gift_open_end.png -->
+    <!-- ✅ 포스터를 지정해서 모바일에서도 영상 정지 화면이 즉시 보이도록 -->
+    <video id="vid" src="./gift_open.mp4" poster="./gift_open_end.png"
+           preload="auto" playsinline webkit-playsinline muted></video>
+
+    <!-- ✅ 재방문 시/영상 끝난 뒤에 항상 사용할 스틸 -->
+    <img id="still" class="bg" src="./gift_open_end.png" alt="" style="display:none"/>
 
     <div id="hint">🎀 리본 풀기</div>
 
@@ -104,29 +108,21 @@
   </div>
 
 <script>
-  /* =========================
-     설정값 (여기만 바꿔도 됨)
-     ========================= */
-  // 버튼 등장 타이밍(ms): 0 / 3초 / 6초
-  const REVEAL_DELAYS = [0, 3000, 6000];
-
-  // 잠금 해제 오프셋(초): 즉시 / 1시간 / 2시간
-  // 테스트시 [0,10,20] 등으로 바꾸세요.
+  /* ========= 설정(여기만 바꿔요) ========= */
+  // 잠금 해제 시간(초): 즉시 / 1시간 / 2시간
+  // 테스트 시 [0,10,20] 등으로 변경
   const UNLOCK_OFFSETS = [0, 3600, 7200];
 
-  // 로컬스토리지 키들
-  const KEY_START_AT = 'giftStartAt';      // 첫 완료 기준시간
-  const KEY_INTRO_DONE = 'giftIntroDone';  // 인트로(영상) 완료 여부
+  // 로컬스토리지 키
+  const KEY_START_AT   = 'giftStartAt';      // 기준시간(한 번 저장)
+  const KEY_INTRO_DONE = 'giftIntroDone';    // 인트로(영상) 완료 여부
+  /* ===================================== */
 
-  /* ========================= */
-  const vid  = document.getElementById('vid');
-  const hint = document.getElementById('hint');
-  const bar  = document.getElementById('bar');
-  const btns = [
-    document.getElementById('btn1'),
-    document.getElementById('btn2'),
-    document.getElementById('btn3')
-  ];
+  const vid   = document.getElementById('vid');
+  const still = document.getElementById('still');
+  const hint  = document.getElementById('hint');
+  const bar   = document.getElementById('bar');
+  const btns  = [ document.getElementById('btn1'), document.getElementById('btn2'), document.getElementById('btn3') ];
 
   const nowSec = () => Math.floor(Date.now()/1000);
   const getStartAt = () => {
@@ -135,38 +131,26 @@
   };
   const ensureStartAt = () => {
     let t = getStartAt();
-    if(!t){
-      t = nowSec();
-      localStorage.setItem(KEY_START_AT, String(t));
-    }
+    if(!t){ t = nowSec(); localStorage.setItem(KEY_START_AT, String(t)); }
     return t;
   };
 
-  /* --- 재방문인지 체크: 재방문이면 영상 스킵 --- */
+  /* ---------- 재방문이면 영상 스킵하고 스틸 노출 ---------- */
   const introDone = localStorage.getItem(KEY_INTRO_DONE) === '1';
   if (introDone) {
-    // 힌트/영상 감춤
+    // 비디오는 감추고 스틸 보여줌
+    vid.style.display = 'none';
+    still.style.display = 'block';
     hint.style.display = 'none';
-    // 스틸 이미지가 있으면 교체 사용 (gift_open_end.png)
-    const still = new Image();
-    still.className = 'bg';
-    still.onload = () => {
-      vid.remove();
-      document.querySelector('.stage').prepend(still);
-    };
-    still.onerror = () => { /* 스틸이 없어도 그냥 무시 */ };
-    still.src = './gift_open_end.png';
-
-    // 버튼 표시 + 잠금 스케줄 즉시 시작
-    revealButtons();
+    revealButtonsTogether();
     scheduleLocks();
   } else {
-    // 최초 방문: 리본 풀기 눌러 영상 재생 → 끝나면 버튼/스케줄
+    // 최초: 리본 풀기 누르면 영상 재생 → 끝나면 스틸 전환
     setupStart();
     wireEnd();
   }
 
-  /* START: 중앙 리본 풀기 탭 시 재생 */
+  /* 중앙 리본 풀기 → 영상 재생 */
   function setupStart(){
     const start = ()=>{
       hint.style.display='none';
@@ -182,48 +166,36 @@
     });
   }
 
-  /* 영상 끝나면 버튼 등장 + 잠금 스케줄 시작 + 재방문 플래그 저장 */
+  /* 영상 종료 처리: 스틸로 교체 + 버튼 + 타이머 + 재방문 플래그 */
   function wireEnd(){
     let done=false;
     const finish=()=>{
       if(done) return; done=true;
-
-      // 재방문 시 영상 대신 스틸 고정
-      const still = new Image();
-      still.className = 'bg';
-      still.onload = () => {
-        vid.remove();
-        document.querySelector('.stage').prepend(still);
-      };
-      still.onerror = () => { /* 스틸 없으면 패스 */ };
-      still.src = './gift_open_end.png';
-
-      revealButtons();
-      scheduleLocks(); // 시간차 오픈
-      localStorage.setItem(KEY_INTRO_DONE, '1'); // 다음부터는 스킵
+      // 스틸 표시, 비디오 감춤
+      still.style.display = 'block';
+      vid.style.display   = 'none';
+      revealButtonsTogether();
+      scheduleLocks();
+      localStorage.setItem(KEY_INTRO_DONE,'1'); // 다음부터는 스킵
     };
     vid.addEventListener('ended', finish, { once:true });
-    vid.addEventListener('timeupdate', ()=>{
-      if(!done && vid.duration && vid.currentTime >= vid.duration - 0.2) finish();
-    });
+    vid.addEventListener('timeupdate', ()=>{ if(!done && vid.duration && vid.currentTime >= vid.duration - 0.2) finish(); });
     vid.addEventListener('error', finish, { once:true }); // fallback
   }
 
-  /* 버튼 등장 애니메이션 (툭툭툭) */
-  function revealButtons(){
+  /* === 버튼 처음 등장: 세 개가 동시에 ‘두둥실’ === */
+  function revealButtonsTogether(){
     bar.style.pointerEvents = 'none';
-    setTimeout(()=>btns[0].classList.add('show'), REVEAL_DELAYS[0]);
-    setTimeout(()=>btns[1].classList.add('show'), REVEAL_DELAYS[1]);
-    setTimeout(()=>btns[2].classList.add('show'), REVEAL_DELAYS[2]);
-    setTimeout(()=>{ bar.style.pointerEvents='auto'; }, Math.max(...REVEAL_DELAYS)+200);
+    // 살짝의 스태거(자연스러움). 동시에 보이되 0/80/160ms 딜레이
+    btns.forEach((b,i)=> setTimeout(()=> b.classList.add('show'), i*80) );
+    setTimeout(()=> bar.style.pointerEvents='auto', 700+200); // riseIn 끝나고 클릭 가능
   }
 
-  /* 잠금/해제 UI */
+  /* === 잠금/해제 === */
   function lockButton(btn){
     if(btn.dataset.locked === '1') return;
     btn.dataset.locked = '1';
     btn.classList.add('locked');
-
     let badge = btn.querySelector('.lock');
     if(!badge){
       badge = document.createElement('span');
@@ -231,35 +203,20 @@
       badge.innerHTML = '🔒 <b>--:--:--</b>';
       btn.appendChild(badge);
     }
-
     btn.addEventListener('click', preventLocked, { capture:true });
   }
   function unlockButton(btn){
     if(btn.dataset.locked !== '1') return;
     btn.dataset.locked = '0';
     btn.classList.remove('locked');
-    const badge = btn.querySelector('.lock');
-    if(badge) badge.remove();
+    const badge = btn.querySelector('.lock'); if(badge) badge.remove();
     btn.removeEventListener('click', preventLocked, { capture:true });
     btn.style.boxShadow = '0 10px 28px rgba(0,0,0,.4), inset 0 0 22px rgba(255,255,255,.25)';
     setTimeout(()=>{ btn.style.boxShadow='0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15)'; }, 250);
   }
-  function preventLocked(e){
-    e.preventDefault();
-    e.stopPropagation();
-    const btn = e.currentTarget;
-    btn.style.transform = 'translateY(0) scale(.97)';
-    setTimeout(()=>{ btn.style.transform = 'translateY(0)'; }, 120);
-  }
-  function formatHMS(sec){
-    const h = Math.floor(sec/3600);
-    const m = Math.floor((sec%3600)/60);
-    const s = sec%60;
-    const pad = n=>String(n).padStart(2,'0');
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
+  function preventLocked(e){ e.preventDefault(); e.stopPropagation(); const btn=e.currentTarget; btn.style.transform='translateY(0) scale(.97)'; setTimeout(()=>btn.style.transform='translateY(0)',120); }
+  function formatHMS(sec){ const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60, pad=n=>String(n).padStart(2,'0'); return `${pad(h)}:${pad(m)}:${pad(s)}`; }
 
-  /* 시간차 오픈 스케줄 */
   function scheduleLocks(){
     const startAt = ensureStartAt();
 
@@ -267,13 +224,8 @@
     btns.forEach((btn, i)=>{
       const unlockAt = startAt + UNLOCK_OFFSETS[i];
       const remain = unlockAt - nowSec();
-      if(remain <= 0){
-        unlockButton(btn);
-      }else{
-        lockButton(btn);
-        const badge = btn.querySelector('.lock b');
-        if(badge) badge.textContent = formatHMS(remain);
-      }
+      if(remain <= 0){ unlockButton(btn); }
+      else{ lockButton(btn); const badge=btn.querySelector('.lock b'); if(badge) badge.textContent=formatHMS(remain); }
     });
 
     // 카운트다운
@@ -282,11 +234,9 @@
       btns.forEach((btn, i)=>{
         const unlockAt = startAt + UNLOCK_OFFSETS[i];
         const remain = unlockAt - now;
-        if(remain <= 0){
-          unlockButton(btn);
-        }else if(btn.dataset.locked === '1'){
-          const badge = btn.querySelector('.lock b');
-          if(badge) badge.textContent = formatHMS(remain);
+        if(remain <= 0){ unlockButton(btn); }
+        else if(btn.dataset.locked === '1'){
+          const badge = btn.querySelector('.lock b'); if(badge) badge.textContent = formatHMS(remain);
         }
       });
     }, 1000);
