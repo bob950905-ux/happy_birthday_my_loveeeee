@@ -36,7 +36,6 @@
   /* 하트 버튼 바 (하단보다 ‘조금 위’) */
   .heart-bar{
     position:fixed; left:0; right:0;
-    /* 이전 24px → 더 위로 : 140px */
     bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
     display:flex; gap:12px; justify-content:center; align-items:flex-end;
     padding:0 16px; z-index:10; pointer-events:none; /* 애니 전 오터치 방지 */
@@ -84,15 +83,16 @@
   /* 좁은 높이 대응 */
   @media (max-height:740px){
     .btn-heart{ min-width:110px; padding:10px 14px; }
-    /* 좁은 기기에서도 툴바 덜 가리게 120px */
     .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 120px); gap:10px; }
   }
 </style>
 </head>
 <body>
   <div class="stage">
-    <!-- 영상 파일명: gift_open.mp4 (같은 폴더) -->
+    <!-- 홈 배경 영상 -->
     <video id="vid" src="./gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+
+    <!-- ✅ 중앙: 리본 풀기 (문구 고정) -->
     <div id="hint">🎀 리본 풀기</div>
 
     <!-- 하단 하트 버튼들 -->
@@ -107,27 +107,19 @@
   const vid  = document.getElementById('vid');
   const hint = document.getElementById('hint');
   const bar  = document.getElementById('bar');
-  const btns = [
-    document.getElementById('btn1'),
-    document.getElementById('btn2'),
-    document.getElementById('btn3')
-  ];
+  const btns = [ document.getElementById('btn1'), document.getElementById('btn2'), document.getElementById('btn3') ];
 
-  /* === 설정 (초 단위) ===
-     0초 → 첫번째 즉시
-     3600초(1시간) → 두번째
-     7200초(2시간) → 세번째
-     테스트는 [0,10,20] 이런 식으로 바꿔서 확인 가능 */
-  const UNLOCK_OFFSETS = [0, 3600, 7200];
+  /* === 시간차 설정(초) === */
+  const UNLOCK_OFFSETS = [0, 3600, 7200]; // 즉시 / 1시간 후 / 2시간 후
 
-  /* START: 중앙 리본 풀기 탭 시 재생 */
+  /* ✅ START → ‘리본 풀기’로 고정 */
   function setupStart(){
     const start = ()=>{
       hint.style.display='none';
       vid.muted = true; vid.playsInline = true;
       vid.play().catch(()=>{
-        // 자동재생 실패 시 다시 힌트 노출
-        hint.textContent = '▶ 영상 시작하기';
+        // 자동재생 실패 시에도 문구는 ‘리본 풀기’ 유지
+        hint.textContent = '🎀 리본 풀기';
         hint.style.display='block';
       });
       ['pointerdown','touchend','click'].forEach(ev=>document.removeEventListener(ev,start));
@@ -137,31 +129,31 @@
     });
   }
 
-  /* 영상 끝나면 버튼 등장 + 잠금 스케줄 시작 */
+  /* 영상 끝나면 버튼 등장 + 시간차 오픈 카운트 시작 */
   function wireEnd(){
     let done=false;
     const finish=()=>{
       if(done) return; done=true;
       revealButtons();
-      scheduleLocks(); // 시간차 오픈
+      scheduleLocks();
     };
     vid.addEventListener('ended', finish, { once:true });
     vid.addEventListener('timeupdate', ()=>{
       if(!done && vid.duration && vid.currentTime >= vid.duration - 0.2) finish();
     });
-    vid.addEventListener('error', finish, { once:true }); // fallback
+    vid.addEventListener('error', finish, { once:true });
   }
 
-  /* 버튼 등장 애니메이션 (툭툭툭) */
+  /* 툭툭툭 등장 */
   function revealButtons(){
-    bar.style.pointerEvents = 'none'; // 애니 중 오터치 방지
+    bar.style.pointerEvents = 'none';
     setTimeout(()=>btns[0].classList.add('show'),   0);
     setTimeout(()=>btns[1].classList.add('show'),2000);
     setTimeout(()=>btns[2].classList.add('show'),4000);
     setTimeout(()=>{ bar.style.pointerEvents='auto'; }, 4200);
   }
 
-  /* 시간 기준 저장/복원 */
+  /* 로컬 기준 시작 시간 저장/복원 */
   const KEY = 'giftStartAt';
   const nowSec = () => Math.floor(Date.now()/1000);
   const getStartAt = () => {
@@ -170,10 +162,7 @@
   };
   const ensureStartAt = () => {
     let t = getStartAt();
-    if(!t){
-      t = nowSec(); // 영상 끝난 시점 기준 시작
-      localStorage.setItem(KEY, String(t));
-    }
+    if(!t){ t = nowSec(); localStorage.setItem(KEY, String(t)); }
     return t;
   };
 
@@ -190,10 +179,8 @@
       badge.innerHTML = '🔒 <b>--:--:--</b>';
       btn.appendChild(badge);
     }
-
     btn.addEventListener('click', preventLocked, { capture:true });
   }
-
   function unlockButton(btn){
     if(btn.dataset.locked !== '1') return;
     btn.dataset.locked = '0';
@@ -202,20 +189,11 @@
     if(badge) badge.remove();
     btn.removeEventListener('click', preventLocked, { capture:true });
 
-    // 살짝 반짝 효과
     btn.style.boxShadow = '0 10px 28px rgba(0,0,0,.4), inset 0 0 22px rgba(255,255,255,.25)';
     setTimeout(()=>{ btn.style.boxShadow='0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15)'; }, 250);
   }
+  function preventLocked(e){ e.preventDefault(); e.stopPropagation(); }
 
-  function preventLocked(e){
-    e.preventDefault();
-    e.stopPropagation();
-    const btn = e.currentTarget;
-    btn.style.transform = 'translateY(0) scale(.97)';
-    setTimeout(()=>{ btn.style.transform = 'translateY(0)'; }, 120);
-  }
-
-  /* 카운트다운 표시 */
   function formatHMS(sec){
     const h = Math.floor(sec/3600);
     const m = Math.floor((sec%3600)/60);
@@ -227,7 +205,6 @@
   function scheduleLocks(){
     const startAt = ensureStartAt();
 
-    // 초기 상태 적용
     btns.forEach((btn, i)=>{
       const unlockAt = startAt + UNLOCK_OFFSETS[i];
       const remain = unlockAt - nowSec();
@@ -240,7 +217,6 @@
       }
     });
 
-    // 1초마다 카운트다운 및 해제
     setInterval(()=>{
       const now = nowSec();
       btns.forEach((btn, i)=>{
