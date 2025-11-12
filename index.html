@@ -3,104 +3,86 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>하트 버튼 스태거 등장</title>
+<title>하트 선물 오픈 타이머</title>
 <style>
-  :root { color-scheme: dark; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html,body { margin:0; background:#000; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
-
-  /* 무대 */
-  .stage { position:fixed; inset:0; background:#000; }
-
-  /* 하단보다 살짝 위: 버튼 바 */
-  .heart-bar{
-    position:fixed; left:0; right:0;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
-    display:flex; gap:14px; justify-content:center;
-    padding:0 16px; z-index:10;
-  }
-
-  /* 버튼 기본 */
-  .btn-heart{
+  body{margin:0;background:#000;color:#fff;font-family:system-ui, -apple-system,"Noto Sans KR",sans-serif;overflow:hidden;}
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:40px;}
+  .gift-wrap{display:flex;gap:16px;justify-content:center;}
+  .gift{
     position:relative;
-    display:inline-flex; align-items:center; justify-content:center;
-    min-width:120px; padding:12px 16px;
-    border-radius:999px; font-weight:900; letter-spacing:.3px;
-    color:#0c1020; text-decoration:none; user-select:none;
-    border:1px solid rgba(255,255,255,.14);
-    box-shadow:0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15);
-
-    /* 등장 전 상태 */
-    opacity:0; transform:translateY(18px) scale(.96);
-    filter:saturate(1.05);
-
-    /* 등장 트랜지션 */
-    transition:
-      opacity .6s cubic-bezier(.16,.84,.44,1),
-      transform .6s cubic-bezier(.16,.84,.44,1),
-      box-shadow .2s ease;
+    min-width:120px;padding:14px 18px;border-radius:999px;
+    font-weight:900;letter-spacing:.3px;text-decoration:none;
+    color:#0c1020;border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
+    opacity:.85;transform:translateY(20px);transition:all .6s ease;
   }
-  .btn-heart:active{ transform:translateY(0) scale(.98); }
-
-  /* 색상 (핑크 / 오렌지 / 블루) */
-  .pink   { background:linear-gradient(45deg,#ff90c2,#ff68b5); }
-  .orange { background:linear-gradient(45deg,#ffc076,#ff8a33); }
-  .blue   { background:linear-gradient(45deg,#7cc8ff,#3fa6ff); }
-
-  /* 등장 시 부여되는 클래스 */
-  .show{
-    opacity:1; transform:translateY(0) scale(1);
-  }
-
-  /* 살짝 떠오르는 미세 모션(옵션) */
-  .floaty{
-    animation:floaty 2.2s ease-in-out .3s infinite;
-  }
-  @keyframes floaty{
-    0%,100% { transform:translateY(0) }
-    50%     { transform:translateY(-3px) }
-  }
-
-  /* 작은 화면 보정 */
-  @media (max-height:740px){
-    .btn-heart{ min-width:110px; padding:10px 14px; }
-    .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 120px); gap:10px; }
+  .gift.show{opacity:1;transform:translateY(0);}
+  .gift.disabled{filter:grayscale(1);opacity:.5;pointer-events:none;}
+  .pink{background:linear-gradient(45deg,#ff90c2,#ff68b5);}
+  .orange{background:linear-gradient(45deg,#ffc076,#ff8a33);}
+  .blue{background:linear-gradient(45deg,#7cc8ff,#3fa6ff);}
+  .lock{
+    position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);
+    font-size:.85rem;color:#bbb;text-shadow:0 1px 3px #000;
   }
 </style>
 </head>
 <body>
-  <div class="stage" role="main">
-    <!-- 하트 버튼 바 -->
-    <nav class="heart-bar" aria-label="선물 선택">
-      <a class="btn-heart pink"   href="./scene1.html"   id="btn1" aria-label="첫번째 선물">💖</a>
-      <a class="btn-heart orange" href="./scene2.html"   id="btn2" aria-label="두번째 선물">🧡🧡</a>
-      <a class="btn-heart blue"   href="./scene3_4.html" id="btn3" aria-label="세번째 선물">💙💙💙</a>
-    </nav>
-  </div>
+<div class="stage">
+  <h2>🎁 리본을 풀면…</h2>
+  <div class="gift-wrap" id="giftButtons"></div>
+</div>
 
 <script>
-/**
- * 하트 버튼을 5초 간격으로 “툭툭툭” 등장시키는 함수
- * delayStepMs: 간격(ms)
- */
-function staggerReveal(elements, delayStepMs = 5000){
-  elements.forEach((el, idx) => {
-    setTimeout(() => {
-      el.classList.add('show');
-      // 살짝 둥실둥실 효과를 원하면 아래 한 줄 유지
-      el.classList.add('floaty');
-    }, idx * delayStepMs);
+/* 💫 시간 설정 (초 단위)
+   💖: 즉시 / 🧡🧡: 1시간 후 / 💙💙💙: 2시간 후
+   테스트용은 [0,10,20] → 0초/10초/20초로 */
+const UNLOCK_OFFSETS = [0, 30, 60];
+
+function setupGifts(){
+  const container = document.getElementById('giftButtons');
+  const gifts = [
+    {emoji:'💖', color:'pink',   label:'첫 번째 선물'},
+    {emoji:'🧡🧡', color:'orange',label:'두 번째 선물'},
+    {emoji:'💙💙💙', color:'blue', label:'세 번째 선물'},
+  ];
+
+  const now = Date.now();
+  gifts.forEach((gift,i)=>{
+    const btn = document.createElement('a');
+    btn.href = `./scene${i+1}.html`;
+    btn.className = `gift ${gift.color}`;
+    btn.innerHTML = `<span>${gift.emoji}</span>`;
+    container.appendChild(btn);
+
+    setTimeout(()=>btn.classList.add('show'), i*5000); // 5초 간격 등장 모션
+
+    const unlockTime = now + UNLOCK_OFFSETS[i]*1000;
+    const diff = unlockTime - now;
+    const lockText = document.createElement('div');
+    lockText.className = 'lock';
+
+    if(diff > 0){
+      btn.classList.add('disabled');
+      const update = ()=>{
+        const remain = unlockTime - Date.now();
+        if(remain <= 0){
+          btn.classList.remove('disabled');
+          lockText.textContent = '열 수 있어요!';
+          clearInterval(timer);
+        } else {
+          const min = Math.floor(remain/60000);
+          lockText.textContent = `${min}분 뒤에 열림`;
+        }
+      };
+      update();
+      const timer = setInterval(update, 10000); // 10초마다 갱신
+      btn.appendChild(lockText);
+    }
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const btn1 = document.getElementById('btn1');
-  const btn2 = document.getElementById('btn2');
-  const btn3 = document.getElementById('btn3');
-
-  // 즉시 / 5초 후 / 10초 후
-  staggerReveal([btn1, btn2, btn3], 5000);
-});
+document.addEventListener('DOMContentLoaded', setupGifts);
 </script>
 </body>
 </html>
