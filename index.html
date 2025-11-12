@@ -7,14 +7,14 @@
 <style>
 :root{
   color-scheme: dark;
-  /* 🎀 리본 버튼 세로 위치(상자 위로 오도록 비율값) — 필요시만 조절 */
+  /* 리본(힌트) 세로 위치: 상자 위에 오도록 퍼센트로 조절 */
   --hint-top: 62%;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:#000;overflow:hidden;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
 .stage{position:fixed;inset:0}
 
-/* 배경 레이어: 포스터는 항상 깔아두고, 비디오는 위에서 재생 후 페이드아웃 */
+/* 포스터는 항상 깔아둠(재방문/돌아오기 유지) */
 .poster, video{
   position:absolute; inset:0; width:100vw; height:100vh;
   object-fit:contain; background:#000;
@@ -22,7 +22,7 @@ html,body{margin:0;background:#000;overflow:hidden;font-family:system-ui,-apple-
 .poster{z-index:0}
 video{z-index:1; opacity:1; transition:opacity .28s ease; will-change:opacity}
 
-/* 🎀 리본 풀기: 상자 ‘위’에 위치 */
+/* 🎀 리본 풀기 버튼(상자 위) */
 #hint{
   position:fixed; left:50%; top:var(--hint-top); transform:translate(-50%,-50%);
   padding:14px 20px; border-radius:16px;
@@ -35,7 +35,7 @@ video{z-index:1; opacity:1; transition:opacity .28s ease; will-change:opacity}
 #hint:active{transform:translate(-50%,-50%) scale(.98)}
 @keyframes bob{0%,100%{transform:translate(-50%,-50%) translateY(0)}50%{transform:translate(-50%,-50%) translateY(-6px)}}
 
-/* 하트 버튼 바: 하단보다 살짝 위 */
+/* 하트 버튼 바(하단보다 살짝 위) */
 .heart-bar{
   position:fixed; left:0; right:0;
   bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
@@ -58,7 +58,7 @@ video{z-index:1; opacity:1; transition:opacity .28s ease; will-change:opacity}
 .blue{background:linear-gradient(45deg,#7cc8ff,#3fa6ff)}
 .btn-heart:active{transform:translateY(0) scale(.98)}
 
-/* 둥~ 떠오르는 모션 */
+/* 떠오르는 모션 */
 @keyframes popRise{
   0%{opacity:0;transform:translateY(38px) scale(.94);filter:blur(3px)}
   60%{opacity:1;transform:translateY(-6px) scale(1.03);filter:blur(0)}
@@ -82,16 +82,16 @@ video{z-index:1; opacity:1; transition:opacity .28s ease; will-change:opacity}
 @media (max-height:740px){
   .btn-heart{min-width:110px;padding:10px 14px}
   .heart-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 120px);gap:10px}
-  :root{--hint-top: 68%} /* 화면 낮으면 리본 위치 살짝 조절 */
+  :root{--hint-top: 68%}
 }
 </style>
 </head>
 <body>
 <div class="stage">
-  <!-- ✅ 마지막 프레임 이미지(포스터)는 항상 깔아둠 -->
+  <!-- ✅ 마지막 프레임 이미지(상자 있는 화면). 파일명 정확히 일치해야 함 -->
   <img id="poster" class="poster" src="./gift_open_last.png" alt="gift poster"/>
 
-  <!-- 🎥 비디오: 위에서 재생 후 끝나면 페이드아웃 -->
+  <!-- 🎥 비디오: 처음에만 재생, 끝나면 자연스럽게 페이드아웃 -->
   <video id="vid" src="./gift_open.mp4" poster="./gift_open_last.png" preload="auto" playsinline webkit-playsinline muted></video>
 
   <!-- 🎀 상자 위 리본 풀기 -->
@@ -113,28 +113,29 @@ const hint   = document.getElementById('hint');
 const bar    = document.getElementById('bar');
 const btns   = [document.getElementById('btn1'), document.getElementById('btn2'), document.getElementById('btn3')];
 
-/* ===== 설정(여기만 손대면 됨) ===== */
-/* 하트 등장 간격(ms) — 1초 간격 */
+/* ===== 사용자 설정 ===== */
+/* 하트 등장 간격(ms): 1초 간격 */
 const REVEAL_DELAYS  = [0, 1000, 2000];
 /* 잠금 해제(초): 즉시 / 1시간 / 2시간 — 테스트는 [0,10,20] */
 const UNLOCK_OFFSETS = [0, 3600, 7200];
-/* 저장 키 */
+
+/* 상태 저장 키 */
 const KEY_START = 'giftStartAt';
-const nowSec = () => Math.floor(Date.now()/1000);
+const nowSec    = () => Math.floor(Date.now()/1000);
 const hasStarted = () => !!localStorage.getItem(KEY_START);
 
-/* 포스터 선로딩(깜빡임 방지) */
+/* 포스터 선로딩 */
 (() => { const img=new Image(); img.src=poster.src; })();
 
-/* 첫 진입 vs 재방문 */
+/* 첫 진입/재방문 분기 */
 function setupStart(){
   if (hasStarted()){
-    // 재방문: 포스터만 보이고, 하트/타이머만 동작
-    vid.style.display='none';
-    hint.style.display='none';
-    ensurePosterVisible(() => { revealButtons(); scheduleLocks(); });
+    // ⬅️ 재방문 또는 씬에서 돌아옴 → 비디오는 숨기고, 포스터+하트 유지
+    showHomeState();
     return;
   }
+  // 처음 진입 → 리본이 상자 위에 바로 보인다
+  hint.style.display = 'block';
   const start = ()=>{
     hint.style.display='none';
     vid.muted = true; vid.playsInline = true;
@@ -149,24 +150,35 @@ function setupStart(){
   });
 }
 
-/* 영상 종료 → 부드럽게 포스터로 */
+/* 재방문/돌아오기 때 홈 상태 구성 */
+function showHomeState(){
+  // 비디오는 보이지 않게
+  vid.style.display='none';
+  // 포스터 반드시 보이게 (혹시 스타일이 바뀌었을 경우 대비)
+  poster.style.display='block';
+  // 리본은 숨김
+  hint.style.display='none';
+  // 하트 노출 + 잠금 갱신
+  ensurePosterVisible(()=>{ revealButtons(); scheduleLocks(); });
+}
+
+/* 영상 종료 후 처리 */
 function wireEnd(){
   let done=false;
   const finish=()=>{
     if(done) return; done=true;
     if(!hasStarted()) localStorage.setItem(KEY_START, String(nowSec()));
-    vid.style.opacity='0';                      // 페이드아웃
-    vid.addEventListener('transitionend',()=>{  // 끝나면 숨김
-      vid.style.display='none';
-    },{once:true});
-    ensurePosterVisible(() => { revealButtons(); scheduleLocks(); });
+    // 비디오는 자연스런 페이드아웃
+    vid.style.opacity='0';
+    vid.addEventListener('transitionend',()=>{ vid.style.display='none'; },{once:true});
+    ensurePosterVisible(()=>{ revealButtons(); scheduleLocks(); });
   };
   vid.addEventListener('ended', finish, {once:true});
   vid.addEventListener('timeupdate', ()=>{ if(!done && vid.duration && vid.currentTime >= vid.duration-0.1) finish(); });
   vid.addEventListener('error', finish, {once:true});
 }
 
-/* 포스터가 로드된 뒤 콜백 실행(모바일에서 검정 깜빡임 방지) */
+/* 포스터 로드 보장 (깜빡임 방지) */
 function ensurePosterVisible(cb){
   if (poster.complete) { cb(); return; }
   poster.addEventListener('load', cb, {once:true});
@@ -203,7 +215,7 @@ function scheduleLocks(){
   if(!hasStarted()) localStorage.setItem(KEY_START, String(nowSec()));
   const startAt = parseInt(localStorage.getItem(KEY_START),10);
 
-  // 초기 상태
+  // 초기 적용
   btns.forEach((btn,i)=>{
     const unlockAt = startAt + UNLOCK_OFFSETS[i];
     const remain = unlockAt - nowSec();
