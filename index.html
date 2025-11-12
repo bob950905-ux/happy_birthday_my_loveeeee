@@ -3,42 +3,21 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>🎁 리본 풀기 — 시간차 오픈</title>
+<title>하트 버튼 스태거 등장</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
-  .stage { position:fixed; inset:0; }
+  html,body { margin:0; background:#000; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
 
-  /* 배경 영상 */
-  video{
-    position:absolute; inset:0; width:100vw; height:100vh;
-    object-fit:contain; background:#000; z-index:0;
-  }
+  /* 무대 */
+  .stage { position:fixed; inset:0; background:#000; }
 
-  /* 🎀 리본 풀기 (중앙) */
-  #hint{
-    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
-    padding:16px 22px; border-radius:16px;
-    background:linear-gradient(135deg,#ff90c2,#ff68b5);
-    color:#1a1020; font-weight:900; font-size:1.05rem;
-    border:1px solid rgba(255,255,255,.22);
-    box-shadow:0 10px 28px rgba(0,0,0,.45), inset 0 0 22px rgba(255,255,255,.25);
-    z-index:5; user-select:none;
-    animation:bob 1.6s ease-in-out infinite;
-  }
-  #hint:active{ transform:translate(-50%,-50%) scale(.98); }
-  @keyframes bob{
-    0%,100%{ transform:translate(-50%,-50%) translateY(0); }
-    50%    { transform:translate(-50%,-50%) translateY(-6px); }
-  }
-
-  /* 하트 버튼 바 (하단보다 ‘조금 위’) */
+  /* 하단보다 살짝 위: 버튼 바 */
   .heart-bar{
     position:fixed; left:0; right:0;
     bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
-    display:flex; gap:12px; justify-content:center; align-items:flex-end;
-    padding:0 16px; z-index:10; pointer-events:none; /* 애니 전 오터치 방지 */
+    display:flex; gap:14px; justify-content:center;
+    padding:0 16px; z-index:10;
   }
 
   /* 버튼 기본 */
@@ -50,37 +29,39 @@
     color:#0c1020; text-decoration:none; user-select:none;
     border:1px solid rgba(255,255,255,.14);
     box-shadow:0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15);
-    transform:translateY(20px); opacity:0; filter:saturate(1.08);
-    transition:transform .6s ease-out, opacity .6s ease-out, box-shadow .2s ease;
-    pointer-events:auto;
+
+    /* 등장 전 상태 */
+    opacity:0; transform:translateY(18px) scale(.96);
+    filter:saturate(1.05);
+
+    /* 등장 트랜지션 */
+    transition:
+      opacity .6s cubic-bezier(.16,.84,.44,1),
+      transform .6s cubic-bezier(.16,.84,.44,1),
+      box-shadow .2s ease;
   }
   .btn-heart:active{ transform:translateY(0) scale(.98); }
 
   /* 색상 (핑크 / 오렌지 / 블루) */
-  .pink  { background:linear-gradient(45deg,#ff90c2,#ff68b5); }
-  .orange{ background:linear-gradient(45deg,#ffc076,#ff8a33); }
-  .blue  { background:linear-gradient(45deg,#7cc8ff,#3fa6ff); }
+  .pink   { background:linear-gradient(45deg,#ff90c2,#ff68b5); }
+  .orange { background:linear-gradient(45deg,#ffc076,#ff8a33); }
+  .blue   { background:linear-gradient(45deg,#7cc8ff,#3fa6ff); }
 
-  /* 등장 애니메이션 */
-  .show { opacity:1; transform:translateY(0); }
-
-  /* 잠금 상태 */
-  .locked{
-    filter:grayscale(.15) brightness(.9);
-    opacity:.65;
-    cursor:not-allowed;
+  /* 등장 시 부여되는 클래스 */
+  .show{
+    opacity:1; transform:translateY(0) scale(1);
   }
-  .locked .lock{
-    position:absolute; inset:auto 10px 100%;
-    display:inline-flex; gap:6px; align-items:center;
-    transform:translateY(-6px);
-    padding:6px 10px; border-radius:10px;
-    background:rgba(16,22,32,.9); color:#eaf1ff; font-weight:800; font-size:.78rem;
-    border:1px solid rgba(255,255,255,.14);
-  }
-  .locked .lock b{ font-variant-numeric:tabular-nums; }
 
-  /* 좁은 높이 대응 */
+  /* 살짝 떠오르는 미세 모션(옵션) */
+  .floaty{
+    animation:floaty 2.2s ease-in-out .3s infinite;
+  }
+  @keyframes floaty{
+    0%,100% { transform:translateY(0) }
+    50%     { transform:translateY(-3px) }
+  }
+
+  /* 작은 화면 보정 */
   @media (max-height:740px){
     .btn-heart{ min-width:110px; padding:10px 14px; }
     .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 120px); gap:10px; }
@@ -88,153 +69,38 @@
 </style>
 </head>
 <body>
-  <div class="stage">
-    <!-- 홈 배경 영상 -->
-    <video id="vid" src="./gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
-
-    <!-- ✅ 중앙: 리본 풀기 (문구 고정) -->
-    <div id="hint">🎀 리본 풀기</div>
-
-    <!-- 하단 하트 버튼들 -->
-    <div id="bar" class="heart-bar" aria-label="선물 선택">
-      <a class="btn-heart pink"   href="./scene1.html"   id="btn1" aria-label="첫번째">💖</a>
-      <a class="btn-heart orange" href="./scene2.html"   id="btn2" aria-label="두번째">🧡🧡</a>
-      <a class="btn-heart blue"   href="./scene3_4.html" id="btn3" aria-label="세번째">💙💙💙</a>
-    </div>
+  <div class="stage" role="main">
+    <!-- 하트 버튼 바 -->
+    <nav class="heart-bar" aria-label="선물 선택">
+      <a class="btn-heart pink"   href="./scene1.html"   id="btn1" aria-label="첫번째 선물">💖</a>
+      <a class="btn-heart orange" href="./scene2.html"   id="btn2" aria-label="두번째 선물">🧡🧡</a>
+      <a class="btn-heart blue"   href="./scene3_4.html" id="btn3" aria-label="세번째 선물">💙💙💙</a>
+    </nav>
   </div>
 
 <script>
-  const vid  = document.getElementById('vid');
-  const hint = document.getElementById('hint');
-  const bar  = document.getElementById('bar');
-  const btns = [ document.getElementById('btn1'), document.getElementById('btn2'), document.getElementById('btn3') ];
+/**
+ * 하트 버튼을 5초 간격으로 “툭툭툭” 등장시키는 함수
+ * delayStepMs: 간격(ms)
+ */
+function staggerReveal(elements, delayStepMs = 5000){
+  elements.forEach((el, idx) => {
+    setTimeout(() => {
+      el.classList.add('show');
+      // 살짝 둥실둥실 효과를 원하면 아래 한 줄 유지
+      el.classList.add('floaty');
+    }, idx * delayStepMs);
+  });
+}
 
-  /* === 시간차 설정(초) === */
-  const UNLOCK_OFFSETS = [0, 30, 60]; // 즉시 / 1시간 후 / 2시간 후
+document.addEventListener('DOMContentLoaded', () => {
+  const btn1 = document.getElementById('btn1');
+  const btn2 = document.getElementById('btn2');
+  const btn3 = document.getElementById('btn3');
 
-  /* ✅ START → ‘리본 풀기’로 고정 */
-  function setupStart(){
-    const start = ()=>{
-      hint.style.display='none';
-      vid.muted = true; vid.playsInline = true;
-      vid.play().catch(()=>{
-        // 자동재생 실패 시에도 문구는 ‘리본 풀기’ 유지
-        hint.textContent = '🎀 리본 풀기';
-        hint.style.display='block';
-      });
-      ['pointerdown','touchend','click'].forEach(ev=>document.removeEventListener(ev,start));
-    };
-    ['pointerdown','touchend','click'].forEach(ev=>{
-      document.addEventListener(ev,start,{once:true,passive:true});
-    });
-  }
-
-  /* 영상 끝나면 버튼 등장 + 시간차 오픈 카운트 시작 */
-  function wireEnd(){
-    let done=false;
-    const finish=()=>{
-      if(done) return; done=true;
-      revealButtons();
-      scheduleLocks();
-    };
-    vid.addEventListener('ended', finish, { once:true });
-    vid.addEventListener('timeupdate', ()=>{
-      if(!done && vid.duration && vid.currentTime >= vid.duration - 0.2) finish();
-    });
-    vid.addEventListener('error', finish, { once:true });
-  }
-
-  /* 툭툭툭 등장 */
-  function revealButtons(){
-    bar.style.pointerEvents = 'none';
-    setTimeout(()=>btns[0].classList.add('show'),   0);
-    setTimeout(()=>btns[1].classList.add('show'),2000);
-    setTimeout(()=>btns[2].classList.add('show'),4000);
-    setTimeout(()=>{ bar.style.pointerEvents='auto'; }, 4200);
-  }
-
-  /* 로컬 기준 시작 시간 저장/복원 */
-  const KEY = 'giftStartAt';
-  const nowSec = () => Math.floor(Date.now()/1000);
-  const getStartAt = () => {
-    const v = localStorage.getItem(KEY);
-    return v ? parseInt(v,10) : null;
-  };
-  const ensureStartAt = () => {
-    let t = getStartAt();
-    if(!t){ t = nowSec(); localStorage.setItem(KEY, String(t)); }
-    return t;
-  };
-
-  /* 잠금/해제 UI */
-  function lockButton(btn){
-    if(btn.dataset.locked === '1') return;
-    btn.dataset.locked = '1';
-    btn.classList.add('locked');
-
-    let badge = btn.querySelector('.lock');
-    if(!badge){
-      badge = document.createElement('span');
-      badge.className = 'lock';
-      badge.innerHTML = '🔒 <b>--:--:--</b>';
-      btn.appendChild(badge);
-    }
-    btn.addEventListener('click', preventLocked, { capture:true });
-  }
-  function unlockButton(btn){
-    if(btn.dataset.locked !== '1') return;
-    btn.dataset.locked = '0';
-    btn.classList.remove('locked');
-    const badge = btn.querySelector('.lock');
-    if(badge) badge.remove();
-    btn.removeEventListener('click', preventLocked, { capture:true });
-
-    btn.style.boxShadow = '0 10px 28px rgba(0,0,0,.4), inset 0 0 22px rgba(255,255,255,.25)';
-    setTimeout(()=>{ btn.style.boxShadow='0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15)'; }, 250);
-  }
-  function preventLocked(e){ e.preventDefault(); e.stopPropagation(); }
-
-  function formatHMS(sec){
-    const h = Math.floor(sec/3600);
-    const m = Math.floor((sec%3600)/60);
-    const s = sec%60;
-    const pad = n=>String(n).padStart(2,'0');
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  }
-
-  function scheduleLocks(){
-    const startAt = ensureStartAt();
-
-    btns.forEach((btn, i)=>{
-      const unlockAt = startAt + UNLOCK_OFFSETS[i];
-      const remain = unlockAt - nowSec();
-      if(remain <= 0){
-        unlockButton(btn);
-      }else{
-        lockButton(btn);
-        const badge = btn.querySelector('.lock b');
-        if(badge) badge.textContent = formatHMS(remain);
-      }
-    });
-
-    setInterval(()=>{
-      const now = nowSec();
-      btns.forEach((btn, i)=>{
-        const unlockAt = startAt + UNLOCK_OFFSETS[i];
-        const remain = unlockAt - now;
-        if(remain <= 0){
-          unlockButton(btn);
-        }else if(btn.dataset.locked === '1'){
-          const badge = btn.querySelector('.lock b');
-          if(badge) badge.textContent = formatHMS(remain);
-        }
-      });
-    }, 1000);
-  }
-
-  // 실행
-  setupStart();
-  wireEnd();
+  // 즉시 / 5초 후 / 10초 후
+  staggerReveal([btn1, btn2, btn3], 5000);
+});
 </script>
 </body>
 </html>
