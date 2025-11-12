@@ -10,8 +10,8 @@
   html,body { margin:0; background:#000; overflow:hidden; font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif; }
   .stage { position:fixed; inset:0; }
 
-  /* 배경 영상 */
-  video{
+  /* 배경 영상/이미지 (항상 맨 뒤) */
+  video, img.bg {
     position:absolute; inset:0; width:100vw; height:100vh;
     object-fit:contain; background:#000; z-index:0;
   }
@@ -36,7 +36,6 @@
   /* 하트 버튼 바 (하단보다 ‘조금 위’) */
   .heart-bar{
     position:fixed; left:0; right:0;
-    /* 이전 24px → 더 위로 : 140px */
     bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
     display:flex; gap:12px; justify-content:center; align-items:flex-end;
     padding:0 16px; z-index:10; pointer-events:none; /* 애니 전 오터치 방지 */
@@ -84,15 +83,16 @@
   /* 좁은 높이 대응 */
   @media (max-height:740px){
     .btn-heart{ min-width:110px; padding:10px 14px; }
-    /* 좁은 기기에서도 툴바 덜 가리게 120px */
     .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 120px); gap:10px; }
   }
 </style>
 </head>
 <body>
   <div class="stage">
-    <!-- 영상 파일명: gift_open.mp4 (같은 폴더) -->
+    <!-- 영상 파일: gift_open.mp4 (같은 폴더) -->
     <video id="vid" src="./gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
+    <!-- 재방문 시 사용할 선택적 스틸 이미지 파일명(있으면 자동 사용됨): gift_open_end.png -->
+
     <div id="hint">🎀 리본 풀기</div>
 
     <!-- 하단 하트 버튼들 -->
@@ -104,6 +104,21 @@
   </div>
 
 <script>
+  /* =========================
+     설정값 (여기만 바꿔도 됨)
+     ========================= */
+  // 버튼 등장 타이밍(ms): 0 / 3초 / 6초
+  const REVEAL_DELAYS = [0, 3000, 6000];
+
+  // 잠금 해제 오프셋(초): 즉시 / 1시간 / 2시간
+  // 테스트시 [0,10,20] 등으로 바꾸세요.
+  const UNLOCK_OFFSETS = [0, 3600, 7200];
+
+  // 로컬스토리지 키들
+  const KEY_START_AT = 'giftStartAt';      // 첫 완료 기준시간
+  const KEY_INTRO_DONE = 'giftIntroDone';  // 인트로(영상) 완료 여부
+
+  /* ========================= */
   const vid  = document.getElementById('vid');
   const hint = document.getElementById('hint');
   const bar  = document.getElementById('bar');
@@ -113,12 +128,43 @@
     document.getElementById('btn3')
   ];
 
-  /* === 설정 (초 단위) ===
-     0초 → 첫번째 즉시
-     3600초(1시간) → 두번째
-     7200초(2시간) → 세번째
-     테스트는 [0,10,20] 이런 식으로 바꿔서 확인 가능 */
-  const UNLOCK_OFFSETS = [0, 3600, 7200];
+  const nowSec = () => Math.floor(Date.now()/1000);
+  const getStartAt = () => {
+    const v = localStorage.getItem(KEY_START_AT);
+    return v ? parseInt(v,10) : null;
+  };
+  const ensureStartAt = () => {
+    let t = getStartAt();
+    if(!t){
+      t = nowSec();
+      localStorage.setItem(KEY_START_AT, String(t));
+    }
+    return t;
+  };
+
+  /* --- 재방문인지 체크: 재방문이면 영상 스킵 --- */
+  const introDone = localStorage.getItem(KEY_INTRO_DONE) === '1';
+  if (introDone) {
+    // 힌트/영상 감춤
+    hint.style.display = 'none';
+    // 스틸 이미지가 있으면 교체 사용 (gift_open_end.png)
+    const still = new Image();
+    still.className = 'bg';
+    still.onload = () => {
+      vid.remove();
+      document.querySelector('.stage').prepend(still);
+    };
+    still.onerror = () => { /* 스틸이 없어도 그냥 무시 */ };
+    still.src = './gift_open_end.png';
+
+    // 버튼 표시 + 잠금 스케줄 즉시 시작
+    revealButtons();
+    scheduleLocks();
+  } else {
+    // 최초 방문: 리본 풀기 눌러 영상 재생 → 끝나면 버튼/스케줄
+    setupStart();
+    wireEnd();
+  }
 
   /* START: 중앙 리본 풀기 탭 시 재생 */
   function setupStart(){
@@ -126,7 +172,6 @@
       hint.style.display='none';
       vid.muted = true; vid.playsInline = true;
       vid.play().catch(()=>{
-        // 자동재생 실패 시 다시 힌트 노출
         hint.textContent = '▶ 영상 시작하기';
         hint.style.display='block';
       });
@@ -137,13 +182,25 @@
     });
   }
 
-  /* 영상 끝나면 버튼 등장 + 잠금 스케줄 시작 */
+  /* 영상 끝나면 버튼 등장 + 잠금 스케줄 시작 + 재방문 플래그 저장 */
   function wireEnd(){
     let done=false;
     const finish=()=>{
       if(done) return; done=true;
+
+      // 재방문 시 영상 대신 스틸 고정
+      const still = new Image();
+      still.className = 'bg';
+      still.onload = () => {
+        vid.remove();
+        document.querySelector('.stage').prepend(still);
+      };
+      still.onerror = () => { /* 스틸 없으면 패스 */ };
+      still.src = './gift_open_end.png';
+
       revealButtons();
       scheduleLocks(); // 시간차 오픈
+      localStorage.setItem(KEY_INTRO_DONE, '1'); // 다음부터는 스킵
     };
     vid.addEventListener('ended', finish, { once:true });
     vid.addEventListener('timeupdate', ()=>{
@@ -154,28 +211,12 @@
 
   /* 버튼 등장 애니메이션 (툭툭툭) */
   function revealButtons(){
-    bar.style.pointerEvents = 'none'; // 애니 중 오터치 방지
-    setTimeout(()=>btns[0].classList.add('show'),   0);
-    setTimeout(()=>btns[1].classList.add('show'),2000);
-    setTimeout(()=>btns[2].classList.add('show'),4000);
-    setTimeout(()=>{ bar.style.pointerEvents='auto'; }, 4200);
+    bar.style.pointerEvents = 'none';
+    setTimeout(()=>btns[0].classList.add('show'), REVEAL_DELAYS[0]);
+    setTimeout(()=>btns[1].classList.add('show'), REVEAL_DELAYS[1]);
+    setTimeout(()=>btns[2].classList.add('show'), REVEAL_DELAYS[2]);
+    setTimeout(()=>{ bar.style.pointerEvents='auto'; }, Math.max(...REVEAL_DELAYS)+200);
   }
-
-  /* 시간 기준 저장/복원 */
-  const KEY = 'giftStartAt';
-  const nowSec = () => Math.floor(Date.now()/1000);
-  const getStartAt = () => {
-    const v = localStorage.getItem(KEY);
-    return v ? parseInt(v,10) : null;
-  };
-  const ensureStartAt = () => {
-    let t = getStartAt();
-    if(!t){
-      t = nowSec(); // 영상 끝난 시점 기준 시작
-      localStorage.setItem(KEY, String(t));
-    }
-    return t;
-  };
 
   /* 잠금/해제 UI */
   function lockButton(btn){
@@ -193,7 +234,6 @@
 
     btn.addEventListener('click', preventLocked, { capture:true });
   }
-
   function unlockButton(btn){
     if(btn.dataset.locked !== '1') return;
     btn.dataset.locked = '0';
@@ -201,12 +241,9 @@
     const badge = btn.querySelector('.lock');
     if(badge) badge.remove();
     btn.removeEventListener('click', preventLocked, { capture:true });
-
-    // 살짝 반짝 효과
     btn.style.boxShadow = '0 10px 28px rgba(0,0,0,.4), inset 0 0 22px rgba(255,255,255,.25)';
     setTimeout(()=>{ btn.style.boxShadow='0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15)'; }, 250);
   }
-
   function preventLocked(e){
     e.preventDefault();
     e.stopPropagation();
@@ -214,8 +251,6 @@
     btn.style.transform = 'translateY(0) scale(.97)';
     setTimeout(()=>{ btn.style.transform = 'translateY(0)'; }, 120);
   }
-
-  /* 카운트다운 표시 */
   function formatHMS(sec){
     const h = Math.floor(sec/3600);
     const m = Math.floor((sec%3600)/60);
@@ -224,10 +259,11 @@
     return `${pad(h)}:${pad(m)}:${pad(s)}`;
   }
 
+  /* 시간차 오픈 스케줄 */
   function scheduleLocks(){
     const startAt = ensureStartAt();
 
-    // 초기 상태 적용
+    // 초기 상태
     btns.forEach((btn, i)=>{
       const unlockAt = startAt + UNLOCK_OFFSETS[i];
       const remain = unlockAt - nowSec();
@@ -240,7 +276,7 @@
       }
     });
 
-    // 1초마다 카운트다운 및 해제
+    // 카운트다운
     setInterval(()=>{
       const now = nowSec();
       btns.forEach((btn, i)=>{
@@ -255,10 +291,6 @@
       });
     }, 1000);
   }
-
-  // 실행
-  setupStart();
-  wireEnd();
 </script>
 </body>
 </html>
