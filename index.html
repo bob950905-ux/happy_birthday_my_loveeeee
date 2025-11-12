@@ -16,21 +16,30 @@
     object-fit:contain; background:#000; z-index:0;
   }
 
-  /* START 힌트 */
+  /* 🎀 리본 풀기 (중앙) */
   #hint{
-    position:fixed; left:50%; top:14px; transform:translateX(-50%);
-    padding:10px 14px; border-radius:999px;
-    background:rgba(20,28,38,.92); color:#fff; font-weight:800;
-    border:1px solid rgba(255,255,255,.18); box-shadow:0 6px 22px rgba(0,0,0,.35);
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+    padding:16px 22px; border-radius:16px;
+    background:linear-gradient(135deg,#ff90c2,#ff68b5);
+    color:#1a1020; font-weight:900; font-size:1.05rem;
+    border:1px solid rgba(255,255,255,.22);
+    box-shadow:0 10px 28px rgba(0,0,0,.45), inset 0 0 22px rgba(255,255,255,.25);
     z-index:5; user-select:none;
+    animation:bob 1.6s ease-in-out infinite;
+  }
+  #hint:active{ transform:translate(-50%,-50%) scale(.98); }
+  @keyframes bob{
+    0%,100%{ transform:translate(-50%,-50%) translateY(0); }
+    50%    { transform:translate(-50%,-50%) translateY(-6px); }
   }
 
-  /* 하트 버튼 바 (하단 중앙) */
+  /* 하트 버튼 바 (하단보다 ‘조금 위’) */
   .heart-bar{
     position:fixed; left:0; right:0;
-    bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
+    /* 이전 24px → 더 위로 : 140px */
+    bottom:calc(env(safe-area-inset-bottom,0px) + 140px);
     display:flex; gap:12px; justify-content:center; align-items:flex-end;
-    padding:0 16px; z-index:10; pointer-events:none; /* 초기엔 애니 완료 전 오터치 방지 */
+    padding:0 16px; z-index:10; pointer-events:none; /* 애니 전 오터치 방지 */
   }
 
   /* 버튼 기본 */
@@ -75,7 +84,8 @@
   /* 좁은 높이 대응 */
   @media (max-height:740px){
     .btn-heart{ min-width:110px; padding:10px 14px; }
-    .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 18px); gap:10px; }
+    /* 좁은 기기에서도 툴바 덜 가리게 120px */
+    .heart-bar{ bottom:calc(env(safe-area-inset-bottom,0px) + 120px); gap:10px; }
   }
 </style>
 </head>
@@ -83,7 +93,7 @@
   <div class="stage">
     <!-- 영상 파일명: gift_open.mp4 (같은 폴더) -->
     <video id="vid" src="./gift_open.mp4" preload="auto" playsinline webkit-playsinline muted></video>
-    <div id="hint">🎬 START!</div>
+    <div id="hint">🎀 리본 풀기</div>
 
     <!-- 하단 하트 버튼들 -->
     <div id="bar" class="heart-bar" aria-label="선물 선택">
@@ -107,23 +117,21 @@
      0초 → 첫번째 즉시
      3600초(1시간) → 두번째
      7200초(2시간) → 세번째
-     테스트 빨리 하려면 5,10 같은 값으로 잠깐 바꿔도 됨 */
+     테스트는 [0,10,20] 이런 식으로 바꿔서 확인 가능 */
   const UNLOCK_OFFSETS = [0, 3600, 7200];
 
-  /* START: 첫 입력에서 재생 */
+  /* START: 중앙 리본 풀기 탭 시 재생 */
   function setupStart(){
-    hint.style.display='block';
-    vid.muted = true; vid.playsInline = true;
-
     const start = ()=>{
       hint.style.display='none';
+      vid.muted = true; vid.playsInline = true;
       vid.play().catch(()=>{
+        // 자동재생 실패 시 다시 힌트 노출
         hint.textContent = '▶ 영상 시작하기';
         hint.style.display='block';
       });
       ['pointerdown','touchend','click'].forEach(ev=>document.removeEventListener(ev,start));
     };
-
     ['pointerdown','touchend','click'].forEach(ev=>{
       document.addEventListener(ev,start,{once:true,passive:true});
     });
@@ -154,20 +162,20 @@
   }
 
   /* 시간 기준 저장/복원 */
-  const KEY = 'giftStartAt'; // 영상 종료 기준 시작시간(초)
-  function getNow(){ return Math.floor(Date.now()/1000); }
-  function getStartAt(){
+  const KEY = 'giftStartAt';
+  const nowSec = () => Math.floor(Date.now()/1000);
+  const getStartAt = () => {
     const v = localStorage.getItem(KEY);
     return v ? parseInt(v,10) : null;
-  }
-  function ensureStartAt(){
+  };
+  const ensureStartAt = () => {
     let t = getStartAt();
     if(!t){
-      t = getNow(); // 영상 끝난 시점 기준 시작
+      t = nowSec(); // 영상 끝난 시점 기준 시작
       localStorage.setItem(KEY, String(t));
     }
     return t;
-  }
+  };
 
   /* 잠금/해제 UI */
   function lockButton(btn){
@@ -175,7 +183,6 @@
     btn.dataset.locked = '1';
     btn.classList.add('locked');
 
-    // 잠금 배지 + 카운트다운
     let badge = btn.querySelector('.lock');
     if(!badge){
       badge = document.createElement('span');
@@ -184,7 +191,6 @@
       btn.appendChild(badge);
     }
 
-    // 클릭 막기
     btn.addEventListener('click', preventLocked, { capture:true });
   }
 
@@ -195,13 +201,13 @@
     const badge = btn.querySelector('.lock');
     if(badge) badge.remove();
     btn.removeEventListener('click', preventLocked, { capture:true });
-    // 살짝 반짝 효과 주고 싶으면 아래 주석 해제
+
+    // 살짝 반짝 효과
     btn.style.boxShadow = '0 10px 28px rgba(0,0,0,.4), inset 0 0 22px rgba(255,255,255,.25)';
     setTimeout(()=>{ btn.style.boxShadow='0 8px 24px rgba(0,0,0,.35), inset 0 0 18px rgba(255,255,255,.15)'; }, 250);
   }
 
   function preventLocked(e){
-    // 잠긴 버튼 클릭 시, 작은 진동 느낌만 (옵션)
     e.preventDefault();
     e.stopPropagation();
     const btn = e.currentTarget;
@@ -219,25 +225,24 @@
   }
 
   function scheduleLocks(){
-    const startAt = ensureStartAt(); // 기준 시간 보장
+    const startAt = ensureStartAt();
 
-    // 초기 잠금/해제 상태 적용
+    // 초기 상태 적용
     btns.forEach((btn, i)=>{
       const unlockAt = startAt + UNLOCK_OFFSETS[i];
-      const remain = unlockAt - getNow();
+      const remain = unlockAt - nowSec();
       if(remain <= 0){
         unlockButton(btn);
       }else{
         lockButton(btn);
-        // 즉시 남은 시간 1회 표시
         const badge = btn.querySelector('.lock b');
         if(badge) badge.textContent = formatHMS(remain);
       }
     });
 
-    // 1초마다 카운트다운/해제 체크
+    // 1초마다 카운트다운 및 해제
     setInterval(()=>{
-      const now = getNow();
+      const now = nowSec();
       btns.forEach((btn, i)=>{
         const unlockAt = startAt + UNLOCK_OFFSETS[i];
         const remain = unlockAt - now;
